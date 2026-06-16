@@ -1,0 +1,39 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+undangan-digital
+undangan-digital-linux
+undangan-digital.exe
+
+# Database
+database/
+*.sqlite
+*.sqlite3
+*.db
+
+# Uploads (user generated)
+assets/uploads/
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+cookies.txt

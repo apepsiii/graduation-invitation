@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --sage-50: #f6f7f4; --sage-100: #e8ebe3; --sage-200: #d4dac9; --sage-500: #7d8471; --sage-600: #5c6352; --sage-700: #4a5042;
+            --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb;
+            --gray-500: #6b7280; --gray-900: #111827;
+            --green-100: #dcfce7; --green-600: #16a34a;
+            --yellow-100: #fef9c3; --yellow-700: #a16207;
+            --red-500: #ef4444;
+        }
+        body { font-family: Inter, sans-serif; background: var(--gray-50); color: var(--gray-900); line-height: 1.5; }
+        .navbar { background: white; border-bottom: 1px solid var(--gray-200); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .navbar-brand { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .navbar-links { display: flex; gap: 24px; }
+        .navbar-links a { font-size: 13px; color: var(--gray-500); text-decoration: none; }
+        .navbar-links a:hover { color: var(--sage-600); }
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 24px; text-align: center; }
+        .stat-number { font-size: 36px; font-weight: 700; color: var(--sage-600); margin-bottom: 4px; }
+        .stat-label { font-size: 12px; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em; }
+        .card { background: white; border: 1px solid var(--gray-200); border-radius: 12px; margin-bottom: 20px; }
+        .card-header { padding: 16px 20px; border-bottom: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center; }
+        .card-title { font-size: 14px; font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px 16px; font-size: 11px; font-weight: 500; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em; background: var(--gray-50); border-bottom: 1px solid var(--gray-100); }
+        td { padding: 14px 16px; font-size: 13px; border-bottom: 1px solid var(--gray-100); }
+        .badge { display: inline-flex; padding: 4px 10px; border-radius: 100px; font-size: 11px; font-weight: 500; }
+        .badge-hadir { background: var(--green-100); color: var(--green-600); }
+        .badge-tidak { background: #fee2e2; color: var(--red-500); }
+        .badge-ragu { background: var(--yellow-100); color: var(--yellow-700); }
+        .badge-belum { background: var(--gray-100); color: var(--gray-500); }
+        .badge-attended { background: var(--green-100); color: var(--green-600); }
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; font-weight: 500; border-radius: 8px; text-decoration: none; cursor: pointer; border: none; transition: all 0.2s; }
+        .btn-outline { background: transparent; border: 1px solid var(--gray-300); color: var(--gray-500); }
+        .btn-outline:hover { border-color: var(--sage-600); color: var(--sage-600); }
+        .btn-sm { padding: 6px 10px; font-size: 12px; }
+        @media (max-width: 768px) { .stats-grid { grid-template-columns: 1fr; } .navbar-links { display: none; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><span>🎓</span><span>Dashboard Admin</span></div>
+        <div class="navbar-links">
+            <a href="/admin/dashboard">Dashboard</a>
+            <a href="/admin/guests">Tamu</a>
+            <a href="/admin/guestbooks">Pesan</a>
+            <a href="/admin/rundowns">Rundown</a>
+            <a href="/admin/galleries">Galeri</a>
+            <a href="/admin/settings">Pengaturan</a>
+            <a href="/admin/scanner">Scanner</a>
+            <a href="/admin/logout">Logout</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-number">{{.stats.TotalGuests}}</div><div class="stat-label">Total Tamu</div></div>
+            <div class="stat-card"><div class="stat-number">{{.stats.TotalRSVP}}</div><div class="stat-label">RSVP</div></div>
+            <div class="stat-card"><div class="stat-number">{{.stats.TotalAttended}}</div><div class="stat-label">Check-in</div></div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Data Tamu</h2>
+                <a href="/admin/guests" class="btn btn-outline btn-sm">Lihat Semua</a>
+            </div>
+            <table>
+                <thead><tr><th>Nama</th><th>RSVP</th><th>Check-in</th><th>Aksi</th></tr></thead>
+                <tbody>
+                    {{range .guests}}
+                    <tr>
+                        <td>{{.Name}}</td>
+                        <td><span class="badge {{if eq .RSVPStatus "Hadir"}}badge-hadir{{else if eq .RSVPStatus "Tidak Hadir"}}badge-tidak{{else if eq .RSVPStatus "Ragu"}}badge-ragu{{else}}badge-belum{{end}}">{{.RSVPStatus}}</span></td>
+                        <td>{{if .IsAttended}}<span class="badge badge-attended">✓ Sudah</span>{{else}}<span class="badge badge-belum">-</span>{{end}}</td>
+                        <td><a href="/undangan/{{.Slug}}" target="_blank" class="btn btn-outline btn-sm">Lihat</a></td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rundown Acara</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --sage-50: #f6f7f4; --sage-100: #e8ebe3; --sage-600: #5c6352; --sage-700: #4a5042; --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db; --gray-500: #6b7280; --gray-600: #4b5563; --gray-700: #374151; --gray-900: #111827; --red-500: #ef4444; --red-600: #dc2626; }
+        body { font-family: 'Inter', sans-serif; background: var(--gray-50); color: var(--gray-900); line-height: 1.5; }
+        .navbar { background: white; border-bottom: 1px solid var(--gray-200); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .navbar-brand { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .navbar-links { display: flex; gap: 24px; }
+        .navbar-links a { font-size: 13px; color: var(--gray-500); text-decoration: none; }
+        .navbar-links a:hover { color: var(--sage-600); }
+        .container { max-width: 800px; margin: 0 auto; padding: 24px; }
+        .page-header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+        .page-title { font-size: 20px; font-weight: 600; }
+        .card { background: white; border: 1px solid var(--gray-200); border-radius: 12px; margin-bottom: 16px; }
+        .rundown-item { padding: 16px 20px; border-bottom: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center; }
+        .rundown-item:last-child { border-bottom: none; }
+        .rundown-time { font-size: 12px; color: var(--sage-600); font-weight: 600; min-width: 100px; }
+        .rundown-content { flex: 1; }
+        .rundown-content h4 { font-size: 14px; color: var(--gray-900); margin-bottom: 2px; }
+        .rundown-content p { font-size: 12px; color: var(--gray-500); }
+        .rundown-actions { display: flex; gap: 8px; }
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; font-weight: 500; border-radius: 8px; text-decoration: none; cursor: pointer; border: none; transition: all 0.2s; font-family: inherit; }
+        .btn-primary { background: var(--sage-600); color: white; }
+        .btn-primary:hover { background: var(--sage-700); }
+        .btn-outline { background: transparent; border: 1px solid var(--gray-300); color: var(--gray-600); }
+        .btn-outline:hover { border-color: var(--sage-600); color: var(--sage-600); }
+        .btn-sm { padding: 6px 10px; font-size: 12px; }
+        .btn-danger { background: var(--red-500); color: white; }
+        .btn-danger:hover { background: var(--red-600); }
+        .empty { padding: 40px; text-align: center; color: var(--gray-400); font-size: 14px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; border-radius: 12px; padding: 24px; max-width: 400px; width: 90%; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h3 { font-size: 16px; font-weight: 600; }
+        .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--gray-400); }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 500; color: var(--gray-700); margin-bottom: 6px; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: inherit; }
+        .form-group input:focus { outline: none; border-color: var(--sage-600); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 768px) { .navbar-links { display: none; } .form-row { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><span>🎓</span><span>Dashboard Admin</span></div>
+        <div class="navbar-links">
+            <a href="/admin/dashboard">Dashboard</a>
+            <a href="/admin/guests">Tamu</a>
+            <a href="/admin/guestbooks">Pesan</a>
+            <a href="/admin/rundowns">Rundown</a>
+            <a href="/admin/galleries">Galeri</a>
+            <a href="/admin/settings">Pengaturan</a>
+            <a href="/admin/scanner">Scanner</a>
+            <a href="/admin/logout">Logout</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Rundown Acara</h1>
+            <button class="btn btn-primary" onclick="openModal()">+ Tambah Acara</button>
+        </div>
+        <div class="card" id="rundownList">
+            {{if .rundowns}}
+                {{range .rundowns}}
+                <div class="rundown-item" id="item-{{.ID}}">
+                    <div class="rundown-time">{{.StartTime}} - {{.EndTime}}</div>
+                    <div class="rundown-content">
+                        <h4>{{.ActivityName}}</h4>
+                        <p>{{.Description}}</p>
+                    </div>
+                    <div class="rundown-actions">
+                        <button class="btn btn-outline btn-sm" onclick="editRundown({{.ID}}, '{{.StartTime}}', '{{.EndTime}}', '{{.ActivityName}}', '{{.Description}}')">Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteRundown({{.ID}})">Hapus</button>
+                    </div>
+                </div>
+                {{end}}
+            {{else}}
+                <div class="empty">Belum ada susunan acara. Klik "+ Tambah Acara" untuk menambahkan.</div>
+            {{end}}
+        </div>
+    </div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Tambah Acara</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="rundownForm" onsubmit="submitForm(event)">
+                <input type="hidden" id="editId" value="">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Waktu Mulai</label>
+                        <input type="time" id="startTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Waktu Selesai</label>
+                        <input type="time" id="endTime" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Nama Kegiatan</label>
+                    <input type="text" id="activityName" required placeholder="Contoh: Pembukaan">
+                </div>
+                <div class="form-group">
+                    <label>Keterangan</label>
+                    <textarea id="description" rows="2" placeholder="Deskripsi singkat (opsional)"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Simpan</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openModal() {
+            document.getElementById('modalTitle').textContent = 'Tambah Acara';
+            document.getElementById('editId').value = '';
+            document.getElementById('rundownForm').reset();
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function editRundown(id, start, end, name, desc) {
+            document.getElementById('modalTitle').textContent = 'Edit Acara';
+            document.getElementById('editId').value = id;
+            document.getElementById('startTime').value = start;
+            document.getElementById('endTime').value = end;
+            document.getElementById('activityName').value = name;
+            document.getElementById('description').value = desc;
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        function submitForm(e) {
+            e.preventDefault();
+            const editId = document.getElementById('editId').value;
+            const data = new FormData();
+            data.append('start_time', document.getElementById('startTime').value);
+            data.append('end_time', document.getElementById('endTime').value);
+            data.append('activity_name', document.getElementById('activityName').value);
+            data.append('description', document.getElementById('description').value);
+            if (editId) data.append('id', editId);
+
+            const method = editId ? 'PUT' : 'POST';
+            fetch('/admin/api/rundowns', { method: method, body: data })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        closeModal();
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (result.error || 'Unknown error'));
+                    }
+                })
+                .catch(err => alert('Error: ' + err));
+        }
+
+        function deleteRundown(id) {
+            if (!confirm('Hapus acara ini?')) return;
+            fetch('/admin/api/rundowns/' + id, { method: 'DELETE' })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        document.getElementById('item-' + id).remove();
+                        if (document.querySelectorAll('.rundown-item').length === 0) {
+                            location.reload();
+                        }
+                    } else {
+                        alert('Error: ' + (result.error || 'Unknown error'));
+                    }
+                })
+                .catch(err => alert('Error: ' + err));
+        }
+    </script>
+</body>
+</html>

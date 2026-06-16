@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pesan Tamu</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --sage-50: #f6f7f4; --sage-100: #e8ebe3; --sage-600: #5c6352; --sage-700: #4a5042; --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db; --gray-400: #9ca3af; --gray-500: #6b7280; --gray-600: #4b5563; --gray-700: #374151; --gray-900: #111827; --red-500: #ef4444; --red-600: #dc2626; }
+        body { font-family: 'Inter', sans-serif; background: var(--gray-50); color: var(--gray-900); line-height: 1.5; }
+        .navbar { background: white; border-bottom: 1px solid var(--gray-200); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .navbar-brand { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .navbar-links { display: flex; gap: 24px; }
+        .navbar-links a { font-size: 13px; color: var(--gray-500); text-decoration: none; }
+        .navbar-links a:hover { color: var(--sage-600); }
+        @media (max-width: 768px) { .navbar-links { display: none; } }
+        .container { max-width: 800px; margin: 0 auto; padding: 24px; }
+        .page-header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+        .page-title { font-size: 20px; font-weight: 600; }
+        .count-badge { font-size: 13px; color: var(--gray-500); }
+        .card { background: white; border: 1px solid var(--gray-200); border-radius: 12px; overflow: hidden; }
+        .message-item { padding: 18px 20px; border-bottom: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+        .message-item:last-child { border-bottom: none; }
+        .message-content { flex: 1; }
+        .message-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+        .message-name { font-size: 14px; font-weight: 600; color: var(--gray-900); }
+        .message-meta { font-size: 11px; color: var(--gray-400); }
+        .message-body { font-size: 14px; color: var(--gray-600); line-height: 1.6; }
+        .message-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; font-weight: 500; border-radius: 8px; text-decoration: none; cursor: pointer; border: none; transition: all 0.2s; font-family: inherit; }
+        .btn-danger { background: var(--red-500); color: white; }
+        .btn-danger:hover { background: var(--red-600); }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        .empty { padding: 48px 40px; text-align: center; color: var(--gray-400); font-size: 14px; }
+        .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><span>🎓</span><span>Dashboard Admin</span></div>
+        <div class="navbar-links">
+            <a href="/admin/dashboard">Dashboard</a>
+            <a href="/admin/guests">Tamu</a>
+            <a href="/admin/guestbooks">Pesan</a>
+            <a href="/admin/rundowns">Rundown</a>
+            <a href="/admin/galleries">Galeri</a>
+            <a href="/admin/settings">Pengaturan</a>
+            <a href="/admin/scanner">Scanner</a>
+            <a href="/admin/logout">Logout</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Pesan Tamu</h1>
+            <span class="count-badge">{{len .guestbooks}} pesan</span>
+        </div>
+        <div class="card">
+            {{if .guestbooks}}
+                {{range .guestbooks}}
+                <div class="message-item" id="item-{{.ID}}">
+                    <div class="message-content">
+                        <div class="message-head">
+                            <span class="message-name">{{.GuestName}}</span>
+                            {{if not .CreatedAt.IsZero}}<span class="message-meta">{{.CreatedAt.Format "02 Jan 2006 15:04"}}</span>{{end}}
+                        </div>
+                        <p class="message-body">{{.Message}}</p>
+                    </div>
+                    <div class="message-actions">
+                        <button class="btn btn-danger btn-sm" onclick="deleteMessage({{.ID}})">Hapus</button>
+                    </div>
+                </div>
+                {{end}}
+            {{else}}
+                <div class="empty">
+                    <div class="empty-icon">📭</div>
+                    Belum ada pesan dari tamu.
+                </div>
+            {{end}}
+        </div>
+    </div>
+
+    <script>
+        function deleteMessage(id) {
+            if (!confirm('Hapus pesan ini?')) return;
+            fetch('/admin/api/guestbooks/' + id, { method: 'DELETE' })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        const item = document.getElementById('item-' + id);
+                        if (item) item.remove();
+                        updateCount();
+                    } else {
+                        alert('Error: ' + (result.error || 'Unknown error'));
+                    }
+                })
+                .catch(err => alert('Error: ' + err));
+        }
+
+        function updateCount() {
+            const items = document.querySelectorAll('.message-item');
+            const badge = document.querySelector('.count-badge');
+            if (badge) badge.textContent = items.length + ' pesan';
+            if (items.length === 0) {
+                const card = document.querySelector('.card');
+                card.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>Belum ada pesan dari tamu.</div>';
+            }
+        }
+    </script>
+</body>
+</html>

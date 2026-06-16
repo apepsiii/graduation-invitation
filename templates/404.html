@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Halaman Tidak Ditemukan</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --sage-100: #e8ebe3;
+            --sage-600: #5c6352;
+            --sage-700: #4a5042;
+            --ink: #1a1a1a;
+            --ink-soft: #5a5a5a;
+            --paper: #fafaf8;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--paper);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background-image: radial-gradient(ellipse at 30% 20%, rgba(125,132,113,0.08) 0%, transparent 50%);
+            padding: 24px;
+        }
+        .card {
+            background: white;
+            border: 1px solid #e5e5e0;
+            border-radius: 20px;
+            padding: 64px 48px;
+            max-width: 420px;
+            width: 100%;
+            box-shadow: 0 12px 48px rgba(0,0,0,0.06);
+        }
+        .icon { font-size: 48px; margin-bottom: 16px; }
+        .code {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 120px;
+            font-weight: 400;
+            color: var(--sage-600);
+            line-height: 1;
+            margin-bottom: 8px;
+            letter-spacing: -0.04em;
+        }
+        h1 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 24px; font-weight: 400; color: var(--ink); margin-bottom: 8px; letter-spacing: -0.02em; }
+        p { color: var(--ink-soft); font-size: 15px; margin-bottom: 32px; line-height: 1.6; font-weight: 300; }
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            background: var(--sage-600);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            letter-spacing: 0.03em;
+        }
+        .btn:hover { background: var(--sage-700); transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">🔍</div>
+        <div class="code">404</div>
+        <h1>Halaman Tidak Ditemukan</h1>
+        <p>Maaf, halaman yang Anda cari tidak tersedia atau telah dipindahkan.</p>
+        <a href="/" class="btn">Kembali ke Beranda</a>
+    </div>
+</body>
+</html>

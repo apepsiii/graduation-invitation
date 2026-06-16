@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galeri Foto</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --sage-50: #f6f7f4; --sage-100: #e8ebe3; --sage-600: #5c6352; --sage-700: #4a5042; --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db; --gray-400: #9ca3af; --gray-500: #6b7280; --gray-700: #374151; --gray-900: #111827; --red-500: #ef4444; --red-600: #dc2626; }
+        body { font-family: 'Inter', sans-serif; background: var(--gray-50); color: var(--gray-900); line-height: 1.5; }
+        .navbar { background: white; border-bottom: 1px solid var(--gray-200); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .navbar-brand { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .navbar-links { display: flex; gap: 24px; }
+        .navbar-links a { font-size: 13px; color: var(--gray-500); text-decoration: none; }
+        .navbar-links a:hover { color: var(--sage-600); }
+        .container { max-width: 900px; margin: 0 auto; padding: 24px; }
+        .page-header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+        .page-title { font-size: 20px; font-weight: 600; }
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+        .gallery-card { background: white; border: 1px solid var(--gray-200); border-radius: 12px; overflow: hidden; }
+        .gallery-img { width: 100%; aspect-ratio: 1; object-fit: cover; background: var(--gray-100); display: flex; align-items: center; justify-content: center; font-size: 48px; color: var(--gray-400); }
+        .gallery-body { padding: 12px 16px; }
+        .gallery-body p { font-size: 13px; color: var(--gray-700); margin-bottom: 8px; }
+        .gallery-body .sort { font-size: 11px; color: var(--gray-400); }
+        .gallery-actions { padding: 0 16px 12px; }
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; font-weight: 500; border-radius: 8px; text-decoration: none; cursor: pointer; border: none; transition: all 0.2s; font-family: inherit; }
+        .btn-primary { background: var(--sage-600); color: white; }
+        .btn-primary:hover { background: var(--sage-700); }
+        .btn-danger { background: var(--red-500); color: white; }
+        .btn-danger:hover { background: var(--red-600); }
+        .btn-sm { padding: 6px 10px; font-size: 12px; }
+        .empty { padding: 60px; text-align: center; color: var(--gray-400); font-size: 14px; background: white; border-radius: 12px; border: 1px solid var(--gray-200); }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; border-radius: 12px; padding: 24px; max-width: 440px; width: 90%; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h3 { font-size: 16px; font-weight: 600; }
+        .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--gray-400); }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 500; color: var(--gray-700); margin-bottom: 6px; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: inherit; }
+        .form-group input:focus { outline: none; border-color: var(--sage-600); }
+        .upload-zone { border: 2px dashed var(--gray-300); border-radius: 10px; padding: 32px 16px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--gray-50); }
+        .upload-zone:hover { border-color: var(--sage-600); background: var(--sage-50); }
+        .upload-zone.has-file { border-color: var(--sage-600); border-style: solid; }
+        .upload-zone .icon { font-size: 36px; margin-bottom: 8px; }
+        .upload-zone .hint { font-size: 12px; color: var(--gray-500); }
+        .upload-zone .filename { font-size: 13px; color: var(--sage-600); font-weight: 500; margin-top: 8px; }
+        .preview-img { max-width: 100%; max-height: 180px; border-radius: 8px; margin-top: 12px; display: none; }
+        .preview-img.show { display: block; }
+        input[type="file"] { display: none; }
+        .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--gray-400); font-size: 12px; }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--gray-200); }
+        .upload-progress { display: none; font-size: 13px; color: var(--sage-600); text-align: center; margin-top: 8px; }
+        @media (max-width: 768px) { .navbar-links { display: none; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><span>🎓</span><span>Dashboard Admin</span></div>
+        <div class="navbar-links">
+            <a href="/admin/dashboard">Dashboard</a>
+            <a href="/admin/guests">Tamu</a>
+            <a href="/admin/guestbooks">Pesan</a>
+            <a href="/admin/rundowns">Rundown</a>
+            <a href="/admin/galleries">Galeri</a>
+            <a href="/admin/settings">Pengaturan</a>
+            <a href="/admin/scanner">Scanner</a>
+            <a href="/admin/logout">Logout</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Galeri Foto</h1>
+            <button class="btn btn-primary" onclick="openModal()">+ Tambah Foto</button>
+        </div>
+        {{if .galleries}}
+        <div class="gallery-grid">
+            {{range .galleries}}
+            <div class="gallery-card" id="item-{{.ID}}">
+                <div class="gallery-img">
+                    {{if .ImageURL}}<img src="{{.ImageURL}}" alt="{{.Caption}}" style="width:100%;height:100%;object-fit:cover;">{{else}}🖼️{{end}}
+                </div>
+                <div class="gallery-body">
+                    <p>{{if .Caption}}{{.Caption}}{{else}}Tanpa keterangan{{end}}</p>
+                    <span class="sort">Urutan: {{.SortOrder}}</span>
+                </div>
+                <div class="gallery-actions">
+                    <button class="btn btn-danger btn-sm" onclick="deleteGallery({{.ID}})">Hapus</button>
+                </div>
+            </div>
+            {{end}}
+        </div>
+        {{else}}
+        <div class="empty">Belum ada foto di galeri. Klik "+ Tambah Foto" untuk menambahkan.</div>
+        {{end}}
+    </div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Foto</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="galleryForm" onsubmit="submitForm(event)">
+                <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/gif">
+
+                <div class="form-group">
+                    <label>Upload Gambar</label>
+                    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                        <div class="icon">📸</div>
+                        <div style="font-size:13px;font-weight:500;color:var(--gray-700);">Klik untuk memilih file</div>
+                        <div class="hint">atau seret file ke sini · JPG, PNG, WebP, GIF (max 10MB)</div>
+                        <div class="filename" id="filename"></div>
+                    </div>
+                    <img class="preview-img" id="previewImg" alt="Preview">
+                </div>
+
+                <div class="divider">atau gunakan URL</div>
+
+                <div class="form-group">
+                    <label>URL Gambar (opsional)</label>
+                    <input type="url" id="imageUrl" placeholder="https://... atau /assets/img/photo.jpg">
+                </div>
+
+                <div class="form-group">
+                    <label>Keterangan (opsional)</label>
+                    <input type="text" id="caption" placeholder="Contoh: Foto kelas XII RPL">
+                </div>
+                <div class="form-group">
+                    <label>Urutan Tampil</label>
+                    <input type="number" id="sortOrder" value="0" min="0">
+                </div>
+                <div class="upload-progress" id="progress">Mengupload...</div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;" id="submitBtn">Simpan</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        var selectedFile = null;
+        var uploadZone = document.getElementById('uploadZone');
+        var fileInput = document.getElementById('fileInput');
+        var previewImg = document.getElementById('previewImg');
+        var filenameEl = document.getElementById('filename');
+
+        fileInput.addEventListener('change', function(e) {
+            handleFile(e.target.files[0]);
+        });
+
+        uploadZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadZone.style.borderColor = 'var(--sage-600)';
+            uploadZone.style.background = 'var(--sage-50)';
+        });
+        uploadZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadZone.style.borderColor = '';
+            uploadZone.style.background = '';
+        });
+        uploadZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadZone.style.borderColor = '';
+            uploadZone.style.background = '';
+            if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+        });
+
+        function handleFile(file) {
+            if (!file) return;
+            var validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+            if (validTypes.indexOf(file.type) === -1) {
+                alert('Format tidak didukung. Gunakan JPG, PNG, WebP, atau GIF.');
+                return;
+            }
+            if (file.size > 10 * 1024 * 1024) {
+                alert('Ukuran file terlalu besar. Maksimal 10MB.');
+                return;
+            }
+            selectedFile = file;
+            filenameEl.textContent = file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+            uploadZone.classList.add('has-file');
+            document.getElementById('imageUrl').value = '';
+
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                previewImg.classList.add('show');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function openModal() {
+            document.getElementById('galleryForm').reset();
+            document.getElementById('sortOrder').value = '0';
+            selectedFile = null;
+            uploadZone.classList.remove('has-file');
+            previewImg.classList.remove('show');
+            previewImg.src = '';
+            filenameEl.textContent = '';
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        function submitForm(e) {
+            e.preventDefault();
+            var data = new FormData();
+            data.append('caption', document.getElementById('caption').value);
+            data.append('sort_order', document.getElementById('sortOrder').value);
+
+            if (selectedFile) {
+                data.append('image', selectedFile);
+            } else if (document.getElementById('imageUrl').value) {
+                data.append('image_url', document.getElementById('imageUrl').value);
+            } else {
+                alert('Pilih file gambar atau masukkan URL.');
+                return;
+            }
+
+            document.getElementById('progress').style.display = 'block';
+            document.getElementById('submitBtn').disabled = true;
+
+            fetch('/admin/api/galleries', { method: 'POST', body: data })
+                .then(function(res) { return res.json(); })
+                .then(function(result) {
+                    if (result.status === 'success') {
+                        closeModal();
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (result.error || 'Unknown error'));
+                    }
+                })
+                .catch(function(err) { alert('Error: ' + err); })
+                .finally(function() {
+                    document.getElementById('progress').style.display = 'none';
+                    document.getElementById('submitBtn').disabled = false;
+                });
+        }
+
+        function deleteGallery(id) {
+            if (!confirm('Hapus foto ini?')) return;
+            fetch('/admin/api/galleries/' + id, { method: 'DELETE' })
+                .then(function(res) { return res.json(); })
+                .then(function(result) {
+                    if (result.status === 'success') {
+                        document.getElementById('item-' + id).remove();
+                        if (document.querySelectorAll('.gallery-card').length === 0) {
+                            location.reload();
+                        }
+                    } else {
+                        alert('Error: ' + (result.error || 'Unknown error'));
+                    }
+                })
+                .catch(function(err) { alert('Error: ' + err); });
+        }
+    </script>
+</body>
+</html>

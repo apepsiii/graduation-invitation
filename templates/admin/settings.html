@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengaturan</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --sage-50: #f6f7f4; --sage-100: #e8ebe3; --sage-600: #5c6352; --sage-700: #4a5042;
+            --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db;
+            --gray-500: #6b7280; --gray-900: #111827;
+            --green-100: #dcfce7; --green-600: #16a34a; --green-700: #15803d;
+            --red-100: #fee2e2; --red-500: #ef4444;
+        }
+        body { font-family: Inter, sans-serif; background: var(--gray-50); color: var(--gray-900); line-height: 1.5; }
+        .navbar { background: white; border-bottom: 1px solid var(--gray-200); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .navbar-brand { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .navbar-links { display: flex; gap: 24px; }
+        .navbar-links a { font-size: 13px; color: var(--gray-500); text-decoration: none; }
+        .navbar-links a:hover { color: var(--sage-600); }
+        .container { max-width: 800px; margin: 0 auto; padding: 24px; }
+        .page-header { margin-bottom: 24px; }
+        .page-title { font-size: 20px; font-weight: 600; }
+        .card { background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 24px; }
+        .card-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--gray-900); }
+        .form-input { width: 100%; padding: 10px 12px; font-size: 13px; border: 1px solid var(--gray-300); border-radius: 8px; font-family: inherit; }
+        .form-input:focus { outline: none; border-color: var(--sage-600); box-shadow: 0 0 0 3px var(--sage-50); }
+        .form-textarea { width: 100%; padding: 10px 12px; font-size: 13px; border: 1px solid var(--gray-300); border-radius: 8px; font-family: inherit; resize: vertical; min-height: 80px; }
+        .form-textarea:focus { outline: none; border-color: var(--sage-600); box-shadow: 0 0 0 3px var(--sage-50); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; font-size: 13px; font-weight: 500; border-radius: 8px; text-decoration: none; cursor: pointer; border: none; transition: all 0.2s; }
+        .btn-primary { background: var(--sage-600); color: white; }
+        .btn-primary:hover { background: var(--sage-700); }
+        .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 20px; }
+        .alert-success { background: var(--green-100); color: var(--green-700); }
+        .alert-error { background: var(--red-100); color: var(--red-500); }
+        @media (max-width: 768px) { .navbar-links { display: none; } .form-row { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><span>🎓</span><span>Dashboard Admin</span></div>
+        <div class="navbar-links">
+            <a href="/admin/dashboard">Dashboard</a>
+            <a href="/admin/guests">Tamu</a>
+            <a href="/admin/guestbooks">Pesan</a>
+            <a href="/admin/rundowns">Rundown</a>
+            <a href="/admin/galleries">Galeri</a>
+            <a href="/admin/settings">Pengaturan</a>
+            <a href="/admin/scanner">Scanner</a>
+            <a href="/admin/logout">Logout</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Pengaturan Acara</h1>
+        </div>
+        {{if .success}}
+        <div class="alert alert-success">✓ Pengaturan berhasil disimpan</div>
+        {{end}}
+        {{if .error}}
+        <div class="alert alert-error">✗ {{.error}}</div>
+        {{end}}
+        <div class="card">
+            <h2 class="card-title">Detail Acara</h2>
+            <form id="settingsForm">
+                <div class="form-group">
+                    <label class="form-label" for="event_title">Nama Acara</label>
+                    <input type="text" class="form-input" id="event_title" name="event_title" value="{{.settings.EventTitle}}" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="event_date">Tanggal</label>
+                        <input type="date" class="form-input" id="event_date" name="event_date" value="{{.settings.EventDate}}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="event_time">Waktu</label>
+                        <input type="text" class="form-input" id="event_time" name="event_time" value="{{.settings.EventTime}}" placeholder="08:00 - Selesai">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="venue_name">Nama Tempat</label>
+                    <input type="text" class="form-input" id="venue_name" name="venue_name" value="{{.settings.VenueName}}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="venue_address">Alamat</label>
+                    <textarea class="form-textarea" id="venue_address" name="venue_address">{{.settings.VenueAddress}}</textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="maps_link">Link Google Maps</label>
+                    <input type="url" class="form-input" id="maps_link" name="maps_link" value="{{.settings.MapsLink}}" placeholder="https://maps.google.com/...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="dresscode">Dresscode</label>
+                    <input type="text" class="form-input" id="dresscode" name="dresscode" value="{{.settings.Dresscode}}" placeholder="Contoh: Formal / Batik">
+                </div>
+                <button type="submit" class="btn btn-primary">Simpan Pengaturan</button>
+            </form>
+        </div>
+
+        <div class="card" style="margin-top: 24px;">
+            <h2 class="card-title">Konfigurasi WhatsApp (OneSender)</h2>
+            <p style="font-size:13px;color:var(--gray-500);margin-bottom:20px;">Konfigurasi OneSender untuk broadcast undangan via WhatsApp.</p>
+            <form id="broadcastForm">
+                <div class="form-group">
+                    <label class="form-label" for="onesender_url">OneSender API URL</label>
+                    <input type="url" class="form-input" id="onesender_url" name="onesender_url" value="{{.settings.OneSenderURL}}" placeholder="http://localhost:3000">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="onesender_api_key">OneSender API Key</label>
+                    <input type="text" class="form-input" id="onesender_api_key" name="onesender_api_key" value="{{.settings.OneSenderAPIKey}}" placeholder="Masukkan API Key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="app_base_url">URL Aplikasi (untuk link undangan)</label>
+                    <input type="url" class="form-input" id="app_base_url" name="app_base_url" value="{{.settings.AppBaseURL}}" placeholder="https://undangan.sekolah.sch.id">
+                </div>
+                <button type="submit" class="btn btn-primary">Simpan Konfigurasi</button>
+            </form>
+        </div>
+    </div>
+    <script>
+        document.getElementById('settingsForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+            const data = new FormData(form);
+            fetch('/admin/api/settings', {
+                method: 'POST',
+                body: data
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.status === 'success') {
+                    alert('Pengaturan berhasil disimpan!');
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            })
+            .catch(err => alert('Error: ' + err));
+        });
+
+        document.getElementById('broadcastForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+            const data = new FormData(form);
+            fetch('/admin/api/settings', {
+                method: 'POST',
+                body: data
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.status === 'success') {
+                    alert('Konfigurasi WhatsApp berhasil disimpan!');
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            })
+            .catch(err => alert('Error: ' + err));
+        });
+    </script>
+</body>
+</html>
