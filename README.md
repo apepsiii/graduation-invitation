@@ -53,6 +53,8 @@ chmod +x undangan-digital
 
 ## VPS Installation Wizard
 
+📖 **Panduan lengkap deployment:** [DEPLOYMENT.md](./DEPLOYMENT.md)
+
 Saat menjalankan binary di VPS, akan muncul wizard interaktif:
 
 ```
