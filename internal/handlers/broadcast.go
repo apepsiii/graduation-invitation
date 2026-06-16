@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -82,17 +83,39 @@ func (bs *BroadcastService) Send(guests []models.Guest, message, imageURL string
 	return result
 }
 
+func (bs *BroadcastService) getAPIURL() string {
+	url := strings.TrimSuffix(bs.apiURL, "/")
+	if strings.HasSuffix(url, "/api/v1/messages") {
+		return url
+	}
+	return url + "/api/v1/messages"
+}
+
+func normalizePhone(phone string) string {
+	phone = strings.TrimSpace(phone)
+	phone = strings.ReplaceAll(phone, " ", "")
+	phone = strings.ReplaceAll(phone, "-", "")
+	phone = strings.ReplaceAll(phone, "+", "")
+
+	if phone == "" {
+		return phone
+	}
+
+	if strings.HasPrefix(phone, "62") {
+		return phone
+	}
+	if strings.HasPrefix(phone, "0") {
+		return "62" + phone[1:]
+	}
+	return "62" + phone
+}
+
 func (bs *BroadcastService) sendSingle(guest models.Guest, messageTemplate, imageURL string) (bool, string) {
 	if guest.PhoneNumber == "" {
 		return false, "nomor telepon kosong"
 	}
 
-	phone := guest.PhoneNumber
-	if !strings.HasPrefix(phone, "62") {
-		phone = "62" + strings.TrimPrefix(phone, "0")
-		phone = strings.TrimPrefix(phone, "62")
-		phone = "62" + phone
-	}
+	phone := normalizePhone(guest.PhoneNumber)
 
 	inviteLink := fmt.Sprintf("%s/undangan/%s", bs.appBaseURL, guest.Slug)
 
@@ -126,7 +149,7 @@ func (bs *BroadcastService) sendSingle(guest models.Guest, messageTemplate, imag
 		return false, fmt.Sprintf("marshal error: %v", err)
 	}
 
-	req, err := http.NewRequest("POST", bs.apiURL+"/api/v1/messages", bytes.NewBuffer(body))
+	req, err := http.NewRequest("POST", bs.getAPIURL(), bytes.NewBuffer(body))
 	if err != nil {
 		return false, fmt.Sprintf("request error: %v", err)
 	}
@@ -141,9 +164,8 @@ func (bs *BroadcastService) sendSingle(guest models.Guest, messageTemplate, imag
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		var errResp map[string]interface{}
-		json.NewDecoder(resp.Body).Decode(&errResp)
-		return false, fmt.Sprintf("API error %d: %v", resp.StatusCode, errResp)
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return false, fmt.Sprintf("API error %d dari %s: %s", resp.StatusCode, bs.getAPIURL(), string(bodyBytes))
 	}
 
 	return true, ""
@@ -163,11 +185,7 @@ func (bs *BroadcastService) SendTest(phone, message, imageURL string) (bool, str
 		return false, "OneSender API belum dikonfigurasi"
 	}
 
-	if !strings.HasPrefix(phone, "62") {
-		phone = "62" + strings.TrimPrefix(phone, "0")
-		phone = strings.TrimPrefix(phone, "62")
-		phone = "62" + phone
-	}
+	phone = normalizePhone(phone)
 
 	var payload map[string]interface{}
 
@@ -197,7 +215,7 @@ func (bs *BroadcastService) SendTest(phone, message, imageURL string) (bool, str
 		return false, fmt.Sprintf("marshal error: %v", err)
 	}
 
-	req, err := http.NewRequest("POST", bs.apiURL+"/api/v1/messages", bytes.NewBuffer(body))
+	req, err := http.NewRequest("POST", bs.getAPIURL(), bytes.NewBuffer(body))
 	if err != nil {
 		return false, fmt.Sprintf("request error: %v", err)
 	}
@@ -212,9 +230,8 @@ func (bs *BroadcastService) SendTest(phone, message, imageURL string) (bool, str
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		var errResp map[string]interface{}
-		json.NewDecoder(resp.Body).Decode(&errResp)
-		return false, fmt.Sprintf("API error %d: %v", resp.StatusCode, errResp)
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return false, fmt.Sprintf("API error %d dari %s: %s", resp.StatusCode, bs.getAPIURL(), string(bodyBytes))
 	}
 
 	return true, ""

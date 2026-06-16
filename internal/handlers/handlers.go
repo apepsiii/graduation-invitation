@@ -265,14 +265,51 @@ func (h *Handler) GetAdminSettings(c *gin.Context) {
 }
 
 func (h *Handler) PostAdminSettings(c *gin.Context) {
-	var settings models.EventSettings
-	if err := c.ShouldBind(&settings); err != nil {
+	existing, err := h.repo.GetEventSettings()
+	if err != nil {
+		existing = &models.EventSettings{}
+	}
+
+	var input models.EventSettings
+	if err := c.ShouldBind(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
 		return
 	}
-	settings.ID = 1
 
-	if err := h.repo.UpdateEventSettings(&settings); err != nil {
+	if input.EventTitle != "" {
+		existing.EventTitle = input.EventTitle
+	}
+	if input.EventDate != "" {
+		existing.EventDate = input.EventDate
+	}
+	if input.EventTime != "" {
+		existing.EventTime = input.EventTime
+	}
+	if input.VenueName != "" {
+		existing.VenueName = input.VenueName
+	}
+	if input.VenueAddress != "" {
+		existing.VenueAddress = input.VenueAddress
+	}
+	if input.MapsLink != "" {
+		existing.MapsLink = input.MapsLink
+	}
+	if input.Dresscode != "" {
+		existing.Dresscode = input.Dresscode
+	}
+	if input.OneSenderURL != "" {
+		existing.OneSenderURL = input.OneSenderURL
+	}
+	if input.OneSenderAPIKey != "" {
+		existing.OneSenderAPIKey = input.OneSenderAPIKey
+	}
+	if input.AppBaseURL != "" {
+		existing.AppBaseURL = input.AppBaseURL
+	}
+
+	existing.ID = 1
+
+	if err := h.repo.UpdateEventSettings(existing); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update settings"})
 		return
 	}
@@ -315,6 +352,8 @@ func (h *Handler) PostAdminGuests(c *gin.Context) {
 		return
 	}
 
+	guest.PhoneNumber = normalizePhone(guest.PhoneNumber)
+
 	if guest.RSVPStatus == "" {
 		guest.RSVPStatus = models.RSVPBelumKonfirmasi
 	}
@@ -333,6 +372,8 @@ func (h *Handler) PutAdminGuest(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
 		return
 	}
+
+	guest.PhoneNumber = normalizePhone(guest.PhoneNumber)
 
 	if err := h.repo.UpdateGuest(&guest); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update guest"})

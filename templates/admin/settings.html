@@ -98,28 +98,25 @@
                     <label class="form-label" for="dresscode">Dresscode</label>
                     <input type="text" class="form-input" id="dresscode" name="dresscode" value="{{.settings.Dresscode}}" placeholder="Contoh: Formal / Batik">
                 </div>
-                <button type="submit" class="btn btn-primary">Simpan Pengaturan</button>
             </form>
         </div>
 
         <div class="card" style="margin-top: 24px;">
             <h2 class="card-title">Konfigurasi WhatsApp (OneSender)</h2>
             <p style="font-size:13px;color:var(--gray-500);margin-bottom:20px;">Konfigurasi OneSender untuk broadcast undangan via WhatsApp.</p>
-            <form id="broadcastForm">
-                <div class="form-group">
-                    <label class="form-label" for="onesender_url">OneSender API URL</label>
-                    <input type="url" class="form-input" id="onesender_url" name="onesender_url" value="{{.settings.OneSenderURL}}" placeholder="http://localhost:3000">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="onesender_api_key">OneSender API Key</label>
-                    <input type="text" class="form-input" id="onesender_api_key" name="onesender_api_key" value="{{.settings.OneSenderAPIKey}}" placeholder="Masukkan API Key">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="app_base_url">URL Aplikasi (untuk link undangan)</label>
-                    <input type="url" class="form-input" id="app_base_url" name="app_base_url" value="{{.settings.AppBaseURL}}" placeholder="https://undangan.sekolah.sch.id">
-                </div>
-                <button type="submit" class="btn btn-primary">Simpan Konfigurasi</button>
-            </form>
+            <div class="form-group">
+                <label class="form-label" for="onesender_url">OneSender API URL</label>
+                <input type="url" class="form-input" id="onesender_url" name="onesender_url" value="{{.settings.OneSenderURL}}" placeholder="http://localhost:3000" form="settingsForm">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="onesender_api_key">OneSender API Key</label>
+                <input type="text" class="form-input" id="onesender_api_key" name="onesender_api_key" value="{{.settings.OneSenderAPIKey}}" placeholder="Masukkan API Key" form="settingsForm">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="app_base_url">URL Aplikasi (untuk link undangan)</label>
+                <input type="url" class="form-input" id="app_base_url" name="app_base_url" value="{{.settings.AppBaseURL}}" placeholder="https://undangan.sekolah.sch.id" form="settingsForm">
+            </div>
+            <button type="submit" class="btn btn-primary" form="settingsForm">Simpan Semua Pengaturan</button>
         </div>
     </div>
     <script>
@@ -134,26 +131,7 @@
             .then(res => res.json())
             .then(result => {
                 if (result.status === 'success') {
-                    alert('Pengaturan berhasil disimpan!');
-                } else {
-                    alert('Error: ' + result.error);
-                }
-            })
-            .catch(err => alert('Error: ' + err));
-        });
-
-        document.getElementById('broadcastForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const form = this;
-            const data = new FormData(form);
-            fetch('/admin/api/settings', {
-                method: 'POST',
-                body: data
-            })
-            .then(res => res.json())
-            .then(result => {
-                if (result.status === 'success') {
-                    alert('Konfigurasi WhatsApp berhasil disimpan!');
+                    alert('Semua pengaturan berhasil disimpan!');
                 } else {
                     alert('Error: ' + result.error);
                 }

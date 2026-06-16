@@ -547,6 +547,36 @@ func (r *Repository) GetStats() (*models.Stats, error) {
 	return stats, nil
 }
 
+func sanitizeSlug(name string) string {
+	name = strings.ToLower(name)
+	re := regexp.MustCompile(`[^a-z0-9]+`)
+	name = re.ReplaceAllString(name, "-")
+	name = strings.Trim(name, "-")
+	if name == "" {
+		name = "guest"
+	}
+	return name
+}
+
+func normalizePhone(phone string) string {
+	phone = strings.TrimSpace(phone)
+	phone = strings.ReplaceAll(phone, " ", "")
+	phone = strings.ReplaceAll(phone, "-", "")
+	phone = strings.ReplaceAll(phone, "+", "")
+
+	if phone == "" {
+		return phone
+	}
+
+	if strings.HasPrefix(phone, "62") {
+		return phone
+	}
+	if strings.HasPrefix(phone, "0") {
+		return "62" + phone[1:]
+	}
+	return "62" + phone
+}
+
 func (r *Repository) ImportGuests(guests []models.Guest) error {
 	tx, err := r.db.Begin()
 	if err != nil {
@@ -570,6 +600,7 @@ func (r *Repository) ImportGuests(guests []models.Guest) error {
 		if guest.Slug == "" {
 			guest.Slug = sanitizeSlug(guest.Name)
 		}
+		guest.PhoneNumber = normalizePhone(guest.PhoneNumber)
 
 		_, err := stmt.Exec(guest.Slug, guest.Name, guest.PhoneNumber, guest.QRToken, guest.RSVPStatus, guest.IsAttended, time.Now())
 		if err != nil {
@@ -581,12 +612,4 @@ func (r *Repository) ImportGuests(guests []models.Guest) error {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 	return nil
-}
-
-func sanitizeSlug(name string) string {
-	name = strings.ToLower(name)
-	reg := regexp.MustCompile(`[^a-z0-9]+`)
-	name = reg.ReplaceAllString(name, "-")
-	name = strings.Trim(name, "-")
-	return name
 }
