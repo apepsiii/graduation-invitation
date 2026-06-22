@@ -35,12 +35,16 @@
         h1 { font-size: 24px; margin-bottom: 8px; color: #0f766e; }
         .subtitle { color: var(--gray-500); margin-bottom: 24px; font-size: 14px; }
         #reader { width: 300px; border-radius: 16px; overflow: hidden; background: #1a1a2e; }
-        .result { margin-top: 24px; padding: 24px; border-radius: 16px; text-align: center; min-width: 300px; display: none; color: white; }
+        .result { margin-top: 24px; padding: 24px; border-radius: 16px; text-align: center; min-width: 320px; max-width: 400px; display: none; color: white; }
         .result.success { background: #5c6352; display: block; }
         .result.error { background: #dc2626; display: block; }
         .result.already { background: #f59e0b; display: block; }
         .result h2 { font-size: 20px; margin-bottom: 8px; }
         .result p { font-size: 14px; opacity: 0.9; }
+        .result .guest-name { font-size: 26px; font-weight: 700; margin: 12px 0 4px; word-wrap: break-word; }
+        .result .guest-class { font-size: 14px; opacity: 0.85; margin-bottom: 12px; }
+        .result .guest-meta { font-size: 12px; opacity: 0.75; margin-top: 8px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.2); }
+        .result-icon { font-size: 48px; margin-bottom: 8px; }
         .btn { display: inline-block; padding: 10px 20px; background: white; color: #0f766e; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; margin-top: 16px; }
         .status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; }
         .status-dot.scanning { background: #5c6352; animation: blink 1s infinite; }
@@ -71,15 +75,19 @@
         <p class="subtitle"><span class="status-dot scanning" id="statusDot"></span><span id="statusText">Memulai kamera...</span></p>
         <div id="reader"></div>
         <div class="result" id="result">
+            <div class="result-icon" id="resultIcon">✓</div>
             <h2 id="resultTitle">Result</h2>
+            <div class="guest-name" id="resultGuestName"></div>
+            <div class="guest-class" id="resultGuestClass"></div>
             <p id="resultMessage">Message</p>
+            <div class="guest-meta" id="resultMeta" style="display:none;"></div>
             <button class="btn" onclick="resetScanner()">Scan Lagi</button>
         </div>
     </div>
     <script>
         let html5QrCode;
         let isScanning = false;
-        function onScanSuccess(decodedText) {
+function onScanSuccess(decodedText) {
             if (!isScanning) return;
             isScanning = false;
             html5QrCode.stop();
@@ -90,9 +98,43 @@
             .then(data => {
                 const resultDiv = document.getElementById('result');
                 resultDiv.className = 'result ' + (data.status === 'success' ? 'success' : data.status === 'already' ? 'already' : 'error');
-                document.getElementById('resultTitle').textContent = data.status === 'success' ? 'Berhasil!' : data.status === 'already' ? 'Sudah Check-in' : 'Gagal';
-                document.getElementById('resultMessage').textContent = data.guest_name ? data.guest_name + ' - ' + data.message : data.message;
-                if (data.status === 'success') { try { new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQYAKI/R7byMRAAEL3bD8tycVQAAO3bD9NulXgAAQHHB9NqmXgAASE5v4eG4l18AADxywfTlqWAAAD5xwfTlqWEAAD9xwfTlqWEAAD9ywvTlqWEAAD9ywvTlqWEAAD5yw/TlqWEAAD5zw/TlqWEAAD10wvTlqWEAAD10w/TlqWEAADx1w/TlqWEAADx2w/TlqWEAAD13w/TlqWEAAD13w/TlqWEAAD14w/TlqWEAAD14w/TlqWEAAD14wvTlqWEAAD14wvTlqWEAAD14wvTlqWEAAD14wvTlqWEAAD14wvTlqWEAAD14wvTlqWEAAD53w/TlqWEAAD93w/TlqWEAAD94w/TlqWEAAD94w/TlqWEAAD94w/TlqWEAAD94w/TlqWEAAD94w/TlqWEAAD94w/TlqWEAAD95w/TlqWEAAD95w/TlqWEAAD95w/TlqWEAAD95w/TlqWEAAD95w/TlqWEAAD95w/TlqWEAAD95w/TlqWEAAD96Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEA').play(); } catch(e) {} }
+                
+                const icon = document.getElementById('resultIcon');
+                const title = document.getElementById('resultTitle');
+                const name = document.getElementById('resultGuestName');
+                const cls = document.getElementById('resultGuestClass');
+                const msg = document.getElementById('resultMessage');
+                const meta = document.getElementById('resultMeta');
+                
+                if (data.status === 'success') {
+                    icon.textContent = '✓';
+                    title.textContent = 'Berhasil Check-in!';
+                    name.textContent = data.guest_name || '';
+                    cls.textContent = data.guest_class || '';
+                    msg.textContent = 'Selamat datang di acara perpisahan!';
+                    meta.style.display = 'none';
+                } else if (data.status === 'already') {
+                    icon.textContent = '⚠';
+                    title.textContent = 'Sudah Check-in';
+                    name.textContent = data.guest_name || '';
+                    cls.textContent = data.guest_class || '';
+                    msg.textContent = 'Tamu sudah melakukan check-in sebelumnya';
+                    if (data.attended_at) {
+                        meta.textContent = '🕐 Check-in pada: ' + data.attended_at;
+                        meta.style.display = 'block';
+                    } else {
+                        meta.style.display = 'none';
+                    }
+                } else {
+                    icon.textContent = '✗';
+                    title.textContent = 'Gagal!';
+                    name.textContent = '';
+                    cls.textContent = '';
+                    msg.textContent = data.message || 'QR Code tidak valid';
+                    meta.style.display = 'none';
+                }
+                
+                if (data.status === 'success') { try { new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQYAKI/R7byMRAAEL3bD8tycVQAAO3bD9NulXgAAQHHB9NqmXgAASE5v4eG4l18AADxywfTlqWAAAD5xwfTlqWEAAD9xwfTlqWEAAD9ywvTlqWEAAD9ywvTlqWEAAD5yw/TlqWEAAD5zw/TlqWEAAD10wvTlqWEAAD10w/TlqWEAADx1w/TlqWEAADx2w/TlqWEAAD13w/TlqWEAAD13w/TlqWEAAD14w/TlqWEAAD14w/TlqWEAAD14wvTlqWEAAD14wvTlqWEAAD14wvTlqWEAAD14wvTlqWEAAD14wvTlqWEAAD14wvTlqWEAAD14wvTlqWEAAD53w/TlqWEAAD93w/TlqWEAAD94w/TlqWEAAD94w/TlqWEAAD94w/TlqWEAAD94w/TlqWEAAD94w/TlqWEAAD94w/TlqWEAAD95w/TlqWEAAD95w/TlqWEAAD95w/TlqWEAAD95w/TlqWEAAD95w/TlqWEAAD95w/TlqWEAAD95w/TlqWEAAD96Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEA').play(); } catch(e) {} }
             })
             .catch(err => { alert('Error: ' + err); isScanning = true; });
         }

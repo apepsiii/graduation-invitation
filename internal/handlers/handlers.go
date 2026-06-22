@@ -201,10 +201,16 @@ func (h *Handler) PostScan(c *gin.Context) {
 	}
 
 	if guest.IsAttended {
+		attendedTime := ""
+		if guest.AttendedAt.Valid {
+			attendedTime = guest.AttendedAt.Time.Format("02/01/2006 15:04")
+		}
 		c.JSON(http.StatusOK, gin.H{
-			"status":     "already",
-			"guest_name": guest.Name,
-			"message":    "Tamu sudah melakukan check-in",
+			"status":       "already",
+			"guest_name":   guest.Name,
+			"guest_class":  guest.Kelas,
+			"attended_at":  attendedTime,
+			"message":      "Tamu sudah melakukan check-in",
 		})
 		return
 	}
@@ -217,6 +223,7 @@ func (h *Handler) PostScan(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":     "success",
 		"guest_name": guest.Name,
+		"guest_class": guest.Kelas,
 		"message":    "Check-in berhasil",
 	})
 }

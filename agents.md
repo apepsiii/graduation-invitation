@@ -81,6 +81,25 @@
 - [x] Guests sorted by kelas then name
 - [x] "Perpisahan Ke-10" → "Perpisahan Ke-8" in all templates
 
+### Phase 8: Responsive UI & Broadcast Improvements (DONE)
+- [x] Responsive navbar with hamburger menu on ALL admin pages (settings, guests, galleries, guestbooks, rundowns, scanner, meal, dashboard)
+- [x] Mobile-friendly navigation: navbar collapses to dropdown on screens < 768px
+- [x] Dashboard shortcut: scanner, konsumsi, tamu, cetak gelang buttons
+- [x] Clickable stat cards on dashboard (navigate to relevant pages)
+- [x] Improved scanner UX: prominent guest name + kelas display, large status icons
+- [x] Show attendance timestamp for double check-in detection
+- [x] Broadcast template from settings (admin can edit message template)
+- [x] Broadcast image URL from settings (used as default for image broadcast)
+- [x] Send WhatsApp to single guest from guests table (per-guest button)
+- [x] Broadcast status endpoint for real-time progress tracking with polling
+- [x] Broadcast logging: per-guest success/failure logged with details
+- [x] Maps display: button-only (no iframe preview)
+- [x] Date display with day name (Sabtu, 27 Juni 2026) and full time (08:00 - Selesai)
+- [x] Bulk download QR codes as ZIP (named by student name)
+- [x] Template preview page (`/admin/template-preview`) for design debugging
+- [x] Countdown timer on invitation page (live days/hours/minutes/seconds to event)
+- [x] "The 10th Graduation Ceremony" → "The 8th Graduation Ceremony" fix
+
 ---
 
 ## Backend Architecture
