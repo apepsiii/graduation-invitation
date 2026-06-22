@@ -12,10 +12,23 @@
         body { font-family: 'Inter', sans-serif; background: var(--gray-50); color: var(--gray-800); line-height: 1.5; }
         .navbar { background: white; border-bottom: 1px solid var(--gray-200); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
         .navbar-brand { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-        .navbar-links { display: flex; gap: 24px; }
+        .navbar-links { display: flex; gap: 24px; align-items: center; }
         .navbar-links a { font-size: 13px; color: var(--gray-500); text-decoration: none; }
-        .navbar-links a:hover, .navbar-links a.active { color: var(--sage-600); }
-        @media (max-width: 768px) { .navbar-links { display: none; } }
+        .navbar-links a:hover, .navbar-links a.active { color: var(--sage-600); font-weight: 600; }
+        .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; }
+        .hamburger span { display: block; width: 22px; height: 2px; background: var(--gray-700); margin: 5px 0; transition: all 0.3s; }
+        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(6px, 6px); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(6px, -6px); }
+        @media (max-width: 768px) {
+            .hamburger { display: block; }
+            .navbar-links { display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; flex-direction: column; padding: 16px 24px; gap: 0; border-bottom: 1px solid var(--gray-200); box-shadow: 0 4px 12px rgba(0,0,0,0.08); align-items: stretch; }
+            .navbar-links.active { display: flex; }
+            .navbar-links a { padding: 12px 0; width: 100%; border-bottom: 1px solid var(--gray-100); }
+            .navbar-links a:last-child { border-bottom: none; }
+            .navbar { padding: 12px 16px; position: relative; }
+            .container { padding: 16px; }
+        }
         .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
         h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
         .subtitle { color: var(--gray-500); font-size: 13px; margin-bottom: 20px; }
@@ -62,7 +75,10 @@
 <body>
     <nav class="navbar">
         <div class="navbar-brand"><span>🍽️</span><span>Tim Konsumsi</span></div>
-        <div class="navbar-links">
+        <button class="hamburger" id="hamburger" onclick="toggleMenu()">
+            <span></span><span></span><span></span>
+        </button>
+        <div class="navbar-links" id="navbarLinks">
             <a href="/admin/dashboard">Dashboard</a>
             <a href="/admin/guests">Tamu</a>
             <a href="/admin/guestbooks">Pesan</a>
@@ -245,6 +261,20 @@
         }
 
         startScanner();
+    </script>
+    <script>
+        function toggleMenu() {
+            const hamburger = document.getElementById('hamburger');
+            const links = document.getElementById('navbarLinks');
+            hamburger.classList.toggle('active');
+            links.classList.toggle('active');
+        }
+        document.querySelectorAll('#navbarLinks a').forEach(link => {
+            link.addEventListener('click', () => {
+                document.getElementById('hamburger').classList.remove('active');
+                document.getElementById('navbarLinks').classList.remove('active');
+            });
+        });
     </script>
 </body>
 </html>

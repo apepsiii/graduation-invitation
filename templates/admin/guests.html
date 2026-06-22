@@ -11,9 +11,15 @@
         body { font-family: Inter, sans-serif; background: var(--gray-50); color: var(--gray-800); line-height: 1.5; }
         .navbar { background: white; border-bottom: 1px solid var(--gray-200); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
         .navbar-brand { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-        .navbar-links { display: flex; gap: 24px; }
+        .navbar-links { display: flex; gap: 24px; align-items: center; }
         .navbar-links a { font-size: 13px; color: var(--gray-500); text-decoration: none; }
         .navbar-links a:hover { color: var(--sage-600); }
+        .navbar-links a.active { color: var(--sage-600); font-weight: 600; }
+        .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; }
+        .hamburger span { display: block; width: 22px; height: 2px; background: var(--gray-700); margin: 5px 0; transition: all 0.3s; }
+        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(6px, 6px); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(6px, -6px); }
         .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
         .card { background: white; border: 1px solid var(--gray-200); border-radius: 12px; margin-bottom: 20px; overflow-x: auto; }
         .card-header { padding: 16px 20px; border-bottom: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center; }
@@ -47,13 +53,26 @@
         .form-group input, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: inherit; }
         .form-group input:focus { outline: none; border-color: var(--sage-600); }
         .empty { padding: 40px; text-align: center; color: var(--gray-400); font-size: 14px; }
-        @media (max-width: 768px) { .navbar-links { display: none; } table { font-size: 12px; } th, td { padding: 10px 12px; } }
+        @media (max-width: 768px) {
+            .hamburger { display: block; }
+            .navbar-links { display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; flex-direction: column; padding: 16px 24px; gap: 0; border-bottom: 1px solid var(--gray-200); box-shadow: 0 4px 12px rgba(0,0,0,0.08); align-items: stretch; }
+            .navbar-links.active { display: flex; }
+            .navbar-links a { padding: 12px 0; width: 100%; border-bottom: 1px solid var(--gray-100); }
+            .navbar-links a:last-child { border-bottom: none; }
+            .navbar { padding: 12px 16px; position: relative; }
+            .container { padding: 16px; }
+            table { font-size: 12px; }
+            th, td { padding: 10px 12px; }
+        }
     </style>
 </head>
 <body>
     <nav class="navbar">
         <div class="navbar-brand"><span>🎓</span><span>Dashboard Admin</span></div>
-        <div class="navbar-links">
+        <button class="hamburger" id="hamburger" onclick="toggleMenu()">
+            <span></span><span></span><span></span>
+        </button>
+        <div class="navbar-links" id="navbarLinks">
             <a href="/admin/dashboard">Dashboard</a>
             <a href="/admin/guests">Tamu</a>
             <a href="/admin/guestbooks">Pesan</a>
@@ -220,198 +239,22 @@
                         alert('Error: ' + (result.error || 'Unknown error'));
                     }
                 })
-                .catch(err => alert('Error: ' + err));
+.catch(err => alert('Error: ' + err));
         }
-
-        function deleteGuest(id) {
-            if (!confirm('Hapus tamu ini?')) return;
-            fetch('/admin/api/guests/' + id, { method: 'DELETE' })
-                .then(res => res.json())
-                .then(result => {
-                    if (result.status === 'success') {
-                        location.reload();
-                    } else {
-                        alert('Error: ' + (result.error || 'Unknown error'));
-                    }
-                })
-                .catch(err => alert('Error: ' + err));
+    </script>
+    <script>
+        function toggleMenu() {
+            const hamburger = document.getElementById('hamburger');
+            const links = document.getElementById('navbarLinks');
+            hamburger.classList.toggle('active');
+            links.classList.toggle('active');
         }
-
-        function sendSingleWA(id, name, phone, slug) {
-            if (!phone) {
-                alert('Nomor WhatsApp kosong');
-                return;
-            }
-            if (!confirm('Kirim undangan WhatsApp ke ' + name + ' (' + phone + ')?')) return;
-            
-            fetch('/admin/api/broadcast/single', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ guest_id: parseInt(id) })
-            })
-            .then(res => res.json())
-            .then(result => {
-                if (result.status === 'success') {
-                    alert('✓ Pesan terkirim ke ' + name + '!');
-                } else {
-                    alert('✗ Error: ' + (result.error || 'Unknown error'));
-                }
-            })
-            .catch(err => alert('Error: ' + err));
-        }
-
-        function submitImport(e) {
-            e.preventDefault();
-            const fileInput = document.getElementById('csvFile');
-            const data = new FormData();
-            data.append('csv_file', fileInput.files[0]);
-
-            fetch('/admin/api/guests/import', { method: 'POST', body: data })
-                .then(res => res.json())
-                .then(result => {
-                    if (result.status === 'success') {
-                        closeImportModal();
-                        alert(result.message);
-                        location.reload();
-                    } else {
-                        alert('Error: ' + (result.error || 'Unknown error'));
-                    }
-                })
-                .catch(err => alert('Error: ' + err));
-        }
-
-        function toggleSelectAll(checkbox) {
-            document.querySelectorAll('.guest-checkbox').forEach(cb => cb.checked = checkbox.checked);
-        }
-
-        function openBroadcastModal() {
-            const selected = document.querySelectorAll('.guest-checkbox:checked');
-            const selectedDiv = document.getElementById('broadcastSelected');
-            if (selected.length > 0) {
-                selectedDiv.textContent = selected.length + ' tamu dipilih untuk broadcast.';
-            } else {
-                selectedDiv.textContent = 'Tidak ada tamu dipilih. Broadcast akan dikirim ke SEMUA tamu.';
-            }
-            document.getElementById('broadcastModal').classList.add('active');
-        }
-
-        function closeBroadcastModal() {
-            document.getElementById('broadcastModal').classList.remove('active');
-        }
-
-        function getSelectedGuestIds() {
-            return Array.from(document.querySelectorAll('.guest-checkbox:checked')).map(cb => parseInt(cb.value));
-        }
-
-        function sendBroadcast() {
-            const message = document.getElementById('broadcastMessage').value;
-            const imageURL = document.getElementById('broadcastImage').value;
-            const guestIds = getSelectedGuestIds();
-
-            if (!message && !imageURL) {
-                alert('Isi pesan atau URL gambar minimal salah satu');
-                return;
-            }
-
-            const target = guestIds.length > 0 ? guestIds.length + ' tamu terpilih' : 'SEMUA tamu';
-            if (!confirm('Kirim broadcast ke ' + target + '?')) return;
-
-            const data = { message: message, image_url: imageURL };
-            if (guestIds.length > 0) data.guest_ids = guestIds;
-
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = 'Mengirim...';
-
-            fetch('/admin/api/broadcast', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            })
-            .then(res => res.json())
-            .then(result => {
-                btn.disabled = false;
-                btn.textContent = 'Kirim Broadcast';
-                if (result.status === 'success') {
-                    alert('✓ Broadcast dimulai untuk ' + result.count + ' tamu!\n\nKlik "Cek Status" untuk melihat progress.');
-                    closeBroadcastModal();
-                    pollBroadcastStatus();
-                } else {
-                    alert('✗ Error: ' + (result.error || 'Unknown error'));
-                }
-            })
-            .catch(err => {
-                btn.disabled = false;
-                btn.textContent = 'Kirim Broadcast';
-                alert('Error: ' + err);
+        document.querySelectorAll('#navbarLinks a').forEach(link => {
+            link.addEventListener('click', () => {
+                document.getElementById('hamburger').classList.remove('active');
+                document.getElementById('navbarLinks').classList.remove('active');
             });
-        }
-
-        let statusInterval = null;
-        function pollBroadcastStatus() {
-            if (statusInterval) clearInterval(statusInterval);
-            
-            const statusDiv = document.createElement('div');
-            statusDiv.id = 'broadcastStatus';
-            statusDiv.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#1f2937;color:#fff;padding:16px 20px;border-radius:8px;font-size:13px;z-index:9999;max-width:300px;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
-            statusDiv.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><b>Broadcast Status</b><button onclick="this.parentElement.parentElement.remove();clearInterval(statusInterval);" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:18px;">&times;</button></div><div id="statusContent">Memuat...</div>';
-            document.body.appendChild(statusDiv);
-
-            statusInterval = setInterval(() => {
-                fetch('/admin/api/broadcast/status')
-                    .then(res => res.json())
-                    .then(data => {
-                        const content = document.getElementById('statusContent');
-                        if (data.running) {
-                            content.innerHTML = '<span style="color:#fbbf24;">⏳ Sedang mengirim...</span><br>Total: ' + data.total + ' | Sukses: ' + data.success + ' | Gagal: ' + data.failed;
-                        } else if (data.total > 0) {
-                            const color = data.failed === 0 ? '#34d399' : '#f87171';
-                            content.innerHTML = '<span style="color:' + color + ';">' + (data.failed === 0 ? '✓ Selesai!' : '⚠ Selesai dengan error') + '</span><br>Total: ' + data.total + ' | Sukses: ' + data.success + ' | Gagal: ' + data.failed;
-                            if (data.errors && data.errors.length > 0) {
-                                content.innerHTML += '<br><details style="margin-top:8px;cursor:pointer;"><summary style="color:#9ca3af;">Lihat error (' + data.errors.length + ')</summary><div style="margin-top:4px;font-size:11px;color:#f87171;max-height:100px;overflow-y:auto;">' + data.errors.slice(0,10).join('<br>') + (data.errors.length > 10 ? '<br>...' : '') + '</div></details>';
-                            }
-                            clearInterval(statusInterval);
-                        } else {
-                            content.innerHTML = 'Belum ada broadcast.';
-                        }
-                    })
-                    .catch(err => {
-                        document.getElementById('statusContent').textContent = 'Error: ' + err;
-                    });
-            }, 2000);
-        }
-
-        function testBroadcast() {
-            const message = document.getElementById('broadcastMessage').value;
-            const imageURL = document.getElementById('broadcastImage').value;
-            const phone = prompt('Masukkan nomor WhatsApp untuk test:\n(format: 08xxx atau 628xxx):');
-            if (!phone) return;
-
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = 'Mengirim test...';
-
-            fetch('/admin/api/broadcast/test', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: phone, message: message, image_url: imageURL })
-            })
-            .then(res => res.json())
-            .then(result => {
-                btn.disabled = false;
-                btn.textContent = 'Test Kirim';
-                if (result.status === 'success') {
-                    alert('✓ Test berhasil!\n\nResponse OneSender:\n' + result.onesender_response);
-                } else {
-                    alert('✗ Error: ' + (result.error || 'Unknown error'));
-                }
-            })
-            .catch(err => {
-                btn.disabled = false;
-                btn.textContent = 'Test Kirim';
-                alert('Error: ' + err);
-            });
-        }
+        });
     </script>
 </body>
 </html>
