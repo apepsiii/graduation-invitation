@@ -52,6 +52,7 @@
             <a href="/admin/galleries">Galeri</a>
             <a href="/admin/settings">Pengaturan</a>
             <a href="/admin/scanner">Scanner</a>
+            <a href="/admin/meal">Konsumsi</a>
             <a href="/admin/logout">Logout</a>
         </div>
     </nav>
@@ -78,8 +79,8 @@
                         <input type="date" class="form-input" id="event_date" name="event_date" value="{{.settings.EventDate}}">
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="event_time">Waktu</label>
-                        <input type="text" class="form-input" id="event_time" name="event_time" value="{{.settings.EventTime}}" placeholder="08:00 - Selesai">
+                        <label class="form-label" for="event_time">Hari & Waktu</label>
+                        <input type="text" class="form-input" id="event_time" name="event_time" value="{{.settings.EventTime}}" placeholder="Sabtu, 08:00 - Selesai">
                     </div>
                 </div>
                 <div class="form-group">
@@ -115,6 +116,27 @@
             <div class="form-group">
                 <label class="form-label" for="app_base_url">URL Aplikasi (untuk link undangan)</label>
                 <input type="url" class="form-input" id="app_base_url" name="app_base_url" value="{{.settings.AppBaseURL}}" placeholder="https://undangan.sekolah.sch.id" form="settingsForm">
+            </div>
+            <button type="submit" class="btn btn-primary" form="settingsForm">Simpan Semua Pengaturan</button>
+        </div>
+
+        <div class="card" style="margin-top: 24px;">
+            <h2 class="card-title">Template Pesan WhatsApp</h2>
+            <p style="font-size:13px;color:var(--gray-500);margin-bottom:20px;">Template pesan untuk broadcast dan kirim individual. Gunakan <code>{nama}</code> untuk nama tamu dan <code>{link}</code> untuk link undangan.</p>
+            <div class="form-group">
+                <label class="form-label" for="broadcast_template">Template Pesan</label>
+                <textarea class="form-textarea" id="broadcast_template" name="broadcast_template" form="settingsForm" style="min-height:120px;" placeholder="Halo {nama},
+
+Kamu diundang ke acara perpisahan SMK NIBA!
+
+Detail undangan: {link}
+
+Terima kasih!">{{.settings.BroadcastTemplate}}</textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="broadcast_image_url">URL Gambar (opsional)</label>
+                <input type="url" class="form-input" id="broadcast_image_url" name="broadcast_image_url" value="{{.settings.BroadcastImageURL}}" placeholder="https://example.com/image.jpg" form="settingsForm">
+                <p style="font-size:11px;color:var(--gray-500);margin-top:4px;">Jika diisi, pesan akan dikirim sebagai gambar dengan caption template di atas.</p>
             </div>
             <button type="submit" class="btn btn-primary" form="settingsForm">Simpan Semua Pengaturan</button>
         </div>

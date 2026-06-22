@@ -15,10 +15,12 @@ import (
 )
 
 type BroadcastService struct {
-	apiURL    string
-	apiKey    string
+	apiURL     string
+	apiKey     string
 	appBaseURL string
-	client    *http.Client
+	client     *http.Client
+	lastResult *BroadcastResult
+	mu         sync.RWMutex
 }
 
 func NewBroadcastService(apiURL, apiKey, appBaseURL string) *BroadcastService {
@@ -33,25 +35,64 @@ func NewBroadcastService(apiURL, apiKey, appBaseURL string) *BroadcastService {
 }
 
 func (bs *BroadcastService) UpdateConfig(apiURL, apiKey, appBaseURL string) {
+	bs.mu.Lock()
+	defer bs.mu.Unlock()
 	bs.apiURL = apiURL
 	bs.apiKey = apiKey
 	bs.appBaseURL = appBaseURL
 }
 
 type BroadcastResult struct {
-	Total   int
-	Success int
-	Failed  int
-	Errors  []string
+	Total     int       `json:"total"`
+	Success   int       `json:"success"`
+	Failed    int       `json:"failed"`
+	Errors    []string  `json:"errors,omitempty"`
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time,omitempty"`
+	Running   bool      `json:"running"`
+}
+
+func (bs *BroadcastService) GetLastResult() *BroadcastResult {
+	bs.mu.RLock()
+	defer bs.mu.RUnlock()
+	if bs.lastResult == nil {
+		return &BroadcastResult{}
+	}
+	result := *bs.lastResult
+	return &result
 }
 
 func (bs *BroadcastService) Send(guests []models.Guest, message, imageURL string) *BroadcastResult {
-	result := &BroadcastResult{Total: len(guests)}
+	result := &BroadcastResult{
+		Total:     len(guests),
+		StartTime: time.Now(),
+		Running:   true,
+	}
 
-	if bs.apiURL == "" || bs.apiKey == "" {
+	bs.mu.Lock()
+	bs.lastResult = result
+	bs.mu.Unlock()
+
+	defer func() {
+		bs.mu.Lock()
+		result.Running = false
+		result.EndTime = time.Now()
+		bs.lastResult = result
+		bs.mu.Unlock()
+	}()
+
+	bs.mu.RLock()
+	apiURL := bs.apiURL
+	apiKey := bs.apiKey
+	bs.mu.RUnlock()
+
+	if apiURL == "" || apiKey == "" {
 		result.Errors = append(result.Errors, "OneSender API belum dikonfigurasi")
+		log.Printf("[broadcast] ERROR: OneSender API belum dikonfigurasi (url=%s, key=%s)", apiURL, apiKey)
 		return result
 	}
+
+	log.Printf("[broadcast] Mulai mengirim ke %d tamu...", len(guests))
 
 	var mu sync.Mutex
 	var wg sync.WaitGroup
@@ -68,18 +109,19 @@ func (bs *BroadcastService) Send(guests []models.Guest, message, imageURL string
 			mu.Lock()
 			if ok {
 				result.Success++
+				log.Printf("[broadcast] [%d/%d] ✓ %s (%s)", result.Success+result.Failed, result.Total, g.Name, g.PhoneNumber)
 			} else {
 				result.Failed++
-				if errMsg != "" {
-					result.Errors = append(result.Errors, fmt.Sprintf("%s: %s", g.Name, errMsg))
-				}
+				errStr := fmt.Sprintf("%s (%s): %s", g.Name, g.PhoneNumber, errMsg)
+				result.Errors = append(result.Errors, errStr)
+				log.Printf("[broadcast] [%d/%d] ✗ %s", result.Success+result.Failed, result.Total, errStr)
 			}
 			mu.Unlock()
 		}(i, guest)
 	}
 
 	wg.Wait()
-	log.Printf("[broadcast] Done: total=%d success=%d failed=%d", result.Total, result.Success, result.Failed)
+	log.Printf("[broadcast] Selesai: total=%d success=%d failed=%d errors=%d", result.Total, result.Success, result.Failed, len(result.Errors))
 	return result
 }
 
@@ -116,8 +158,7 @@ func (bs *BroadcastService) sendSingle(guest models.Guest, messageTemplate, imag
 	}
 
 	phone := normalizePhone(guest.PhoneNumber)
-
-	inviteLink := fmt.Sprintf("%s/undangan/%s", bs.appBaseURL, guest.Slug)
+	inviteLink := fmt.Sprintf("%s/undangan/%s", strings.TrimSuffix(bs.appBaseURL, "/"), guest.Slug)
 
 	var payload map[string]interface{}
 
@@ -163,12 +204,26 @@ func (bs *BroadcastService) sendSingle(guest models.Guest, messageTemplate, imag
 	}
 	defer resp.Body.Close()
 
+	bodyBytes, _ := io.ReadAll(resp.Body)
+
+	log.Printf("[broadcast] Response from OneSender (status=%d): %s", resp.StatusCode, string(bodyBytes))
+
 	if resp.StatusCode >= 400 {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return false, fmt.Sprintf("API error %d dari %s: %s", resp.StatusCode, bs.getAPIURL(), string(bodyBytes))
+		return false, fmt.Sprintf("API error %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
-	return true, ""
+	var respData struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+		Error   string `json:"error"`
+	}
+	json.Unmarshal(bodyBytes, &respData)
+
+	if respData.Code != 0 && respData.Code != 200 {
+		return false, fmt.Sprintf("OneSender error: %s", respData.Message + respData.Error)
+	}
+
+	return true, string(bodyBytes)
 }
 
 func (bs *BroadcastService) personalize(template, name, link string) string {
@@ -229,10 +284,11 @@ func (bs *BroadcastService) SendTest(phone, message, imageURL string) (bool, str
 	}
 	defer resp.Body.Close()
 
+	bodyBytes, _ := io.ReadAll(resp.Body)
+
 	if resp.StatusCode >= 400 {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return false, fmt.Sprintf("API error %d dari %s: %s", resp.StatusCode, bs.getAPIURL(), string(bodyBytes))
+		return false, fmt.Sprintf("API error %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
-	return true, ""
+	return true, string(bodyBytes)
 }

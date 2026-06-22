@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Cetak Gelang - {{.title}}</title>
+<style>
+@page { size: A4 portrait; margin: 0; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: Arial, sans-serif; background: #e5e7eb; }
+
+.toolbar {
+  position: fixed; top: 0; left: 0; right: 0;
+  background: #2d2d2d; color: white;
+  padding: 12px 24px;
+  display: flex; gap: 12px; align-items: center;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.toolbar button {
+  padding: 8px 16px; border: none; border-radius: 6px;
+  cursor: pointer; font-size: 13px; font-weight: 500;
+}
+.toolbar .btn-primary { background: #5c6352; color: white; }
+.toolbar .btn-primary:hover { background: #4a5042; }
+.toolbar .btn-secondary { background: #6b7280; color: white; }
+.toolbar .info { font-size: 12px; color: #d1d5db; margin-left: auto; }
+
+.page {
+  width: 21cm;
+  height: 29.7cm;
+  padding: 0.4cm;
+  background: white;
+  margin: 60px auto 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.3cm;
+  page-break-after: always;
+  overflow: hidden;
+}
+
+.bracelet {
+  width: 20.2cm;
+  height: 2.4cm;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.bracelet-template {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.bracelet-overlay {
+  position: absolute;
+  top: 0;
+  right: 0.3cm;
+  width: auto;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.2cm;
+  z-index: 10;
+  padding: 0.2cm;
+}
+
+.bracelet-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.05cm;
+  color: #1a1a1a;
+}
+
+.bracelet-name {
+  font-size: 8pt;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.1;
+  max-width: 2cm;
+  word-wrap: break-word;
+}
+
+.bracelet-kelas {
+  font-size: 6pt;
+  font-weight: 600;
+  text-align: center;
+  color: #333;
+}
+
+.bracelet-qr {
+  width: 1.8cm;
+  height: 1.8cm;
+  background: white;
+  padding: 0.05cm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bracelet-qr img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.empty {
+  text-align: center;
+  padding: 100px 20px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+@media print {
+  body { background: white; }
+  .toolbar { display: none !important; }
+  .page {
+    margin: 0;
+    box-shadow: none;
+    padding: 0.3cm;
+    width: 21cm;
+    height: 29.7cm;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button class="btn-primary" onclick="window.print()">🖨 Cetak / Save PDF</button>
+  <button class="btn-secondary" onclick="window.close()">Tutup</button>
+  <div class="info">
+    Total: <span id="totalCount">0</span> gelang ·
+    <span id="pageCount">0</span> halaman A4 (10 gelang/hal) ·
+    Atur printer ke <strong>Scale 100% / Actual size</strong>
+  </div>
+</div>
+
+<div id="pages"></div>
+
+<script>
+const guests = {{.guestsJSON}};
+const perPage = 10;
+const templateImg = '/assets/uploads/ticket/template.png';
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39'}[c]));
+}
+
+function buildBracelet(g) {
+  return `
+  <div class="bracelet">
+    <img class="bracelet-template" src="${templateImg}" alt="template">
+    <div class="bracelet-overlay">
+      <div class="bracelet-info">
+        <div class="bracelet-name">${escapeHtml(g.name)}</div>
+        <div class="bracelet-kelas">${escapeHtml(g.kelas || '—')}</div>
+      </div>
+      <div class="bracelet-qr">
+        <img src="${g.qr_data_url}" alt="QR">
+      </div>
+    </div>
+  </div>`;
+}
+
+(function render() {
+  const pagesDiv = document.getElementById('pages');
+  const pages = Math.ceil(guests.length / perPage);
+
+  document.getElementById('totalCount').textContent = guests.length;
+  document.getElementById('pageCount').textContent = pages;
+
+  if (guests.length === 0) {
+    pagesDiv.innerHTML = '<div class="empty">Belum ada data tamu. Tambahkan tamu terlebih dahulu di menu Tamu.</div>';
+    return;
+  }
+
+  for (let p = 0; p < pages; p++) {
+    const pageDiv = document.createElement('div');
+    pageDiv.className = 'page';
+    const start = p * perPage;
+    const end = Math.min(start + perPage, guests.length);
+    for (let i = start; i < end; i++) {
+      pageDiv.insertAdjacentHTML('beforeend', buildBracelet(guests[i]));
+    }
+    pagesDiv.appendChild(pageDiv);
+  }
+})();
+</script>
+
+</body>
+</html>

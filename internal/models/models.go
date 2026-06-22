@@ -20,25 +20,42 @@ type Guest struct {
 	Slug        string       `db:"slug" form:"slug"`
 	Name        string       `db:"name" form:"name" binding:"required"`
 	PhoneNumber string       `db:"phone_number" form:"phone_number"`
+	Kelas       string       `db:"kelas" form:"kelas"`
 	QRToken     string       `db:"qr_token" form:"qr_token"`
 	RSVPStatus  string       `db:"rsvp_status" form:"rsvp_status"`
 	IsAttended  bool         `db:"is_attended" form:"is_attended"`
 	AttendedAt  sql.NullTime `db:"attended_at" form:"attended_at"`
+	MealTakenAt sql.NullTime `db:"meal_taken_at" form:"meal_taken_at"`
 	CreatedAt   time.Time    `db:"created_at" form:"created_at"`
 }
 
+type MealStats struct {
+	TotalGuests int64 `json:"total_guests"`
+	MealTaken   int64 `json:"meal_taken"`
+	MealRemain  int64 `json:"meal_remain"`
+}
+
+type MealCheckin struct {
+	ID          int64     `json:"id"`
+	Name        string    `json:"name"`
+	PhoneNumber string    `json:"phone_number"`
+	MealTakenAt time.Time `json:"meal_taken_at"`
+}
+
 type EventSettings struct {
-	ID              int64  `db:"id" form:"id"`
-	EventTitle      string `db:"event_title" form:"event_title"`
-	EventDate       string `db:"event_date" form:"event_date"`
-	EventTime       string `db:"event_time" form:"event_time"`
-	VenueName       string `db:"venue_name" form:"venue_name"`
-	VenueAddress    string `db:"venue_address" form:"venue_address"`
-	MapsLink        string `db:"maps_link" form:"maps_link"`
-	Dresscode       string `db:"dresscode" form:"dresscode"`
-	OneSenderURL    string `db:"onesender_url" form:"onesender_url"`
-	OneSenderAPIKey string `db:"onesender_api_key" form:"onesender_api_key"`
-	AppBaseURL      string `db:"app_base_url" form:"app_base_url"`
+	ID                int64  `db:"id" form:"id"`
+	EventTitle        string `db:"event_title" form:"event_title"`
+	EventDate         string `db:"event_date" form:"event_date"`
+	EventTime         string `db:"event_time" form:"event_time"`
+	VenueName         string `db:"venue_name" form:"venue_name"`
+	VenueAddress      string `db:"venue_address" form:"venue_address"`
+	MapsLink          string `db:"maps_link" form:"maps_link"`
+	Dresscode         string `db:"dresscode" form:"dresscode"`
+	OneSenderURL      string `db:"onesender_url" form:"onesender_url"`
+	OneSenderAPIKey   string `db:"onesender_api_key" form:"onesender_api_key"`
+	AppBaseURL        string `db:"app_base_url" form:"app_base_url"`
+	BroadcastTemplate string `db:"broadcast_template" form:"broadcast_template"`
+	BroadcastImageURL string `db:"broadcast_image_url" form:"broadcast_image_url"`
 }
 
 type Guestbook struct {

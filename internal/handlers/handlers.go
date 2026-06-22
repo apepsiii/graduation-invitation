@@ -1,19 +1,27 @@
 package handlers
 
 import (
+	"archive/zip"
+	"bytes"
 	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"encoding/csv"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/skip2/go-qrcode"
 	"undangan-digital/internal/middleware"
 	"undangan-digital/internal/models"
 	"undangan-digital/internal/repository"
@@ -306,6 +314,12 @@ func (h *Handler) PostAdminSettings(c *gin.Context) {
 	if input.AppBaseURL != "" {
 		existing.AppBaseURL = input.AppBaseURL
 	}
+	if input.BroadcastTemplate != "" {
+		existing.BroadcastTemplate = input.BroadcastTemplate
+	}
+	if input.BroadcastImageURL != "" {
+		existing.BroadcastImageURL = input.BroadcastImageURL
+	}
 
 	existing.ID = 1
 
@@ -430,7 +444,10 @@ func (h *Handler) PostAdminImportGuests(c *gin.Context) {
 			RSVPStatus:  models.RSVPBelumKonfirmasi,
 		}
 		if len(record) > 2 {
-			guest.Slug = strings.TrimSpace(record[2])
+			guest.Kelas = strings.TrimSpace(record[2])
+		}
+		if len(record) > 3 {
+			guest.Slug = strings.TrimSpace(record[3])
 		}
 		guests = append(guests, guest)
 	}
@@ -613,6 +630,11 @@ func (h *Handler) PostAdminBroadcast(c *gin.Context) {
 		return
 	}
 
+	if settings.OneSenderURL == "" || settings.OneSenderAPIKey == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "OneSender API belum dikonfigurasi. Silakan isi di menu Pengaturan."})
+		return
+	}
+
 	h.broadcast.UpdateConfig(settings.OneSenderURL, settings.OneSenderAPIKey, settings.AppBaseURL)
 
 	var guests []models.Guest
@@ -637,12 +659,25 @@ func (h *Handler) PostAdminBroadcast(c *gin.Context) {
 		return
 	}
 
+	message := req.Message
+	if message == "" {
+		message = settings.BroadcastTemplate
+	}
+	if message == "" {
+		message = "Halo {nama},\n\nKamu diundang ke acara perpisahan kami!\n\nDetail undangan: {link}\n\nTerima kasih!"
+	}
+
+	imageURL := req.ImageURL
+	if imageURL == "" {
+		imageURL = settings.BroadcastImageURL
+	}
+
 	guestCopy := make([]models.Guest, len(guests))
 	copy(guestCopy, guests)
 
 	broadcast := h.broadcast
 	go func() {
-		broadcast.Send(guestCopy, req.Message, req.ImageURL)
+		broadcast.Send(guestCopy, message, imageURL)
 	}()
 
 	c.JSON(http.StatusOK, gin.H{
@@ -650,6 +685,62 @@ func (h *Handler) PostAdminBroadcast(c *gin.Context) {
 		"message": fmt.Sprintf("Broadcast dimulai untuk %d tamu", len(guests)),
 		"count":   len(guests),
 	})
+}
+
+func (h *Handler) GetBroadcastStatus(c *gin.Context) {
+	result := h.broadcast.GetLastResult()
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *Handler) SendSingleWhatsApp(c *gin.Context) {
+	var req struct {
+		GuestID int64 `json:"guest_id" form:"guest_id"`
+	}
+	if err := c.ShouldBind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	guest, err := h.repo.GetGuestByID(req.GuestID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Guest not found"})
+		return
+	}
+
+	settings, err := h.repo.GetEventSettings()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get settings"})
+		return
+	}
+
+	if settings.OneSenderURL == "" || settings.OneSenderAPIKey == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "OneSender API belum dikonfigurasi"})
+		return
+	}
+
+	if guest.PhoneNumber == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nomor WhatsApp tamu kosong"})
+		return
+	}
+
+	h.broadcast.UpdateConfig(settings.OneSenderURL, settings.OneSenderAPIKey, settings.AppBaseURL)
+
+	template := settings.BroadcastTemplate
+	if template == "" {
+		template = "Halo {nama},\n\nKamu diundang ke acara perpisahan kami!\n\nDetail undangan: {link}\n\nTerima kasih!"
+	}
+
+	inviteLink := fmt.Sprintf("%s/undangan/%s", strings.TrimSuffix(settings.AppBaseURL, "/"), guest.Slug)
+	personalMessage := strings.ReplaceAll(template, "{nama}", guest.Name)
+	personalMessage = strings.ReplaceAll(personalMessage, "{link}", inviteLink)
+
+	ok, respBody := h.broadcast.SendTest(guest.PhoneNumber, personalMessage, settings.BroadcastImageURL)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": respBody})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Pesan terkirim ke " + guest.Name, "response": respBody})
 }
 
 func (h *Handler) PostAdminBroadcastTest(c *gin.Context) {
@@ -671,13 +762,13 @@ func (h *Handler) PostAdminBroadcastTest(c *gin.Context) {
 
 	h.broadcast.UpdateConfig(settings.OneSenderURL, settings.OneSenderAPIKey, settings.AppBaseURL)
 
-	ok, errMsg := h.broadcast.SendTest(req.Phone, req.Message, req.ImageURL)
+	ok, respBody := h.broadcast.SendTest(req.Phone, req.Message, req.ImageURL)
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
+		c.JSON(http.StatusBadRequest, gin.H{"error": respBody})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Test broadcast berhasil"})
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Test broadcast berhasil", "onesender_response": respBody})
 }
 
 func (h *Handler) NotFound(c *gin.Context) {
@@ -705,5 +796,205 @@ func (h *Handler) GetAdminGalleriesPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "admin/galleries.html", gin.H{
 		"title":     "Manajemen Galeri",
 		"galleries": galleries,
+	})
+}
+
+// ===== Tim Konsumsi (Meal) =====
+
+func (h *Handler) GetAdminMealPage(c *gin.Context) {
+	stats, err := h.repo.GetMealStats()
+	if err != nil {
+		stats = &models.MealStats{}
+	}
+	checkins, err := h.repo.GetMealCheckins()
+	if err != nil {
+		checkins = []models.MealCheckin{}
+	}
+	c.HTML(http.StatusOK, "admin/meal.html", gin.H{
+		"title":    "Tim Konsumsi",
+		"stats":    stats,
+		"checkins": checkins,
+	})
+}
+
+func (h *Handler) PostMealScan(c *gin.Context) {
+	var req models.ScanRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid request"})
+		return
+	}
+
+	guest, err := h.repo.GetGuestByQRToken(req.QRToken)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "QR Code tidak valid"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Server error"})
+		return
+	}
+
+	if guest.MealTakenAt.Valid {
+		c.JSON(http.StatusOK, gin.H{
+			"status":       "already",
+			"guest_name":   guest.Name,
+			"meal_taken":   true,
+			"meal_taken_at": guest.MealTakenAt.Time.Format("02/01/2006 15:04"),
+			"message":      "Sudah mengambil makan",
+		})
+		return
+	}
+
+	inserted, err := h.repo.MarkMeal(req.QRToken)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to mark meal"})
+		return
+	}
+	if !inserted {
+		c.JSON(http.StatusOK, gin.H{
+			"status":     "already",
+			"guest_name": guest.Name,
+			"meal_taken": true,
+			"message":    "Sudah mengambil makan",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":     "success",
+		"guest_name": guest.Name,
+		"meal_taken": false,
+		"message":    "Berhasil! Silakan ambil makan",
+	})
+}
+
+func (h *Handler) GetMealStatsAPI(c *gin.Context) {
+	stats, err := h.repo.GetMealStats()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get meal stats"})
+		return
+	}
+	c.JSON(http.StatusOK, stats)
+}
+
+func (h *Handler) GetMealCheckinsAPI(c *gin.Context) {
+	checkins, err := h.repo.GetMealCheckins()
+	if err != nil {
+		checkins = []models.MealCheckin{}
+	}
+	c.JSON(http.StatusOK, gin.H{"checkins": checkins})
+}
+
+func (h *Handler) ResetMeal(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+	if err := h.repo.ResetMeal(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reset meal"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+func (h *Handler) DownloadQRCodes(c *gin.Context) {
+	guests, err := h.repo.GetAllGuests()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get guests"})
+		return
+	}
+	if len(guests) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Belum ada data tamu"})
+		return
+	}
+
+	buf := new(bytes.Buffer)
+	zipWriter := zip.NewWriter(buf)
+
+	for _, g := range guests {
+		if g.QRToken == "" {
+			continue
+		}
+		png, err := qrcode.Encode(g.QRToken, qrcode.Medium, 512)
+		if err != nil {
+			continue
+		}
+		filename := sanitizeFilename(g.Name) + ".png"
+		w, err := zipWriter.Create(filename)
+		if err != nil {
+			continue
+		}
+		w.Write(png)
+	}
+	zipWriter.Close()
+
+	c.Header("Content-Type", "application/zip")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=qrcodes-%s.zip", time.Now().Format("20060102-150405")))
+	c.Data(http.StatusOK, "application/zip", buf.Bytes())
+}
+
+func sanitizeFilename(name string) string {
+	replacer := strings.NewReplacer(" ", "_", "/", "_", "\\", "_", ":", "_", "*", "_", "?", "_", "\"", "_", "<", "_", ">", "_", "|", "_")
+	s := replacer.Replace(name)
+	if s == "" {
+		s = "guest"
+	}
+	return s
+}
+
+func (h *Handler) GetAdminBracelet(c *gin.Context) {
+	guests, err := h.repo.GetAllGuests()
+	if err != nil {
+		guests = []models.Guest{}
+	}
+
+	sort.Slice(guests, func(i, j int) bool {
+		if guests[i].Kelas != guests[j].Kelas {
+			return guests[i].Kelas < guests[j].Kelas
+		}
+		return guests[i].Name < guests[j].Name
+	})
+
+	type braceletData struct {
+		ID        int64  `json:"id"`
+		Name      string `json:"name"`
+		Kelas     string `json:"kelas"`
+		QRDataURL string `json:"qr_data_url"`
+	}
+
+	var data []braceletData
+	for _, g := range guests {
+		if g.QRToken == "" {
+			continue
+		}
+		png, err := qrcode.Encode(g.QRToken, qrcode.Medium, 256)
+		if err != nil {
+			continue
+		}
+		data = append(data, braceletData{
+			ID:        g.ID,
+			Name:      g.Name,
+			Kelas:     g.Kelas,
+			QRDataURL: "data:image/png;base64," + base64.StdEncoding.EncodeToString(png),
+		})
+	}
+
+	guestsJSON, err := json.Marshal(data)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to serialize guests"})
+		return
+	}
+
+	c.HTML(http.StatusOK, "admin/bracelet.html", gin.H{
+		"title":      "Cetak Gelang",
+		"guestsJSON": template.JS(guestsJSON),
+	})
+}
+
+func (h *Handler) GetTemplatePreview(c *gin.Context) {
+	c.HTML(http.StatusOK, "admin/template-preview.html", gin.H{
+		"title": "Preview Template",
 	})
 }

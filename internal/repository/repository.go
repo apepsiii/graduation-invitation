@@ -120,6 +120,10 @@ func (r *Repository) migrateSchema() {
 		"ALTER TABLE event_settings ADD COLUMN onesender_url TEXT NOT NULL DEFAULT ''",
 		"ALTER TABLE event_settings ADD COLUMN onesender_api_key TEXT NOT NULL DEFAULT ''",
 		"ALTER TABLE event_settings ADD COLUMN app_base_url TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE guests ADD COLUMN meal_taken_at TEXT",
+		"ALTER TABLE guests ADD COLUMN kelas TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE event_settings ADD COLUMN broadcast_template TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE event_settings ADD COLUMN broadcast_image_url TEXT NOT NULL DEFAULT ''",
 	}
 	for _, m := range migrations {
 		r.db.Exec(m)
@@ -129,12 +133,12 @@ func (r *Repository) migrateSchema() {
 func (r *Repository) GetEventSettings() (*models.EventSettings, error) {
 	settings := &models.EventSettings{}
 	err := r.db.QueryRow(`
-		SELECT id, event_title, event_date, event_time, venue_name, venue_address, maps_link, dresscode, onesender_url, onesender_api_key, app_base_url
+		SELECT id, event_title, event_date, event_time, venue_name, venue_address, maps_link, dresscode, onesender_url, onesender_api_key, app_base_url, broadcast_template, broadcast_image_url
 		FROM event_settings LIMIT 1
-	`	).Scan(
+	`).Scan(
 		&settings.ID, &settings.EventTitle, &settings.EventDate, &settings.EventTime,
 		&settings.VenueName, &settings.VenueAddress, &settings.MapsLink, &settings.Dresscode,
-		&settings.OneSenderURL, &settings.OneSenderAPIKey, &settings.AppBaseURL,
+		&settings.OneSenderURL, &settings.OneSenderAPIKey, &settings.AppBaseURL, &settings.BroadcastTemplate, &settings.BroadcastImageURL,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get event settings: %w", err)
@@ -145,11 +149,11 @@ func (r *Repository) GetEventSettings() (*models.EventSettings, error) {
 func (r *Repository) UpdateEventSettings(settings *models.EventSettings) error {
 	_, err := r.db.Exec(`
 		UPDATE event_settings
-		SET event_title = ?, event_date = ?, event_time = ?, venue_name = ?, venue_address = ?, maps_link = ?, dresscode = ?, onesender_url = ?, onesender_api_key = ?, app_base_url = ?
+		SET event_title = ?, event_date = ?, event_time = ?, venue_name = ?, venue_address = ?, maps_link = ?, dresscode = ?, onesender_url = ?, onesender_api_key = ?, app_base_url = ?, broadcast_template = ?, broadcast_image_url = ?
 		WHERE id = ?
 	`, settings.EventTitle, settings.EventDate, settings.EventTime, settings.VenueName,
 		settings.VenueAddress, settings.MapsLink, settings.Dresscode,
-		settings.OneSenderURL, settings.OneSenderAPIKey, settings.AppBaseURL, settings.ID)
+		settings.OneSenderURL, settings.OneSenderAPIKey, settings.AppBaseURL, settings.BroadcastTemplate, settings.BroadcastImageURL, settings.ID)
 	if err != nil {
 		return fmt.Errorf("failed to update event settings: %w", err)
 	}
@@ -158,13 +162,13 @@ func (r *Repository) UpdateEventSettings(settings *models.EventSettings) error {
 
 func (r *Repository) GetGuestBySlug(slug string) (*models.Guest, error) {
 	guest := &models.Guest{}
-	var attendedAt, createdAt sql.NullString
+	var attendedAt, mealTakenAt, createdAt sql.NullString
 	err := r.db.QueryRow(`
-		SELECT id, slug, name, phone_number, qr_token, rsvp_status, is_attended, attended_at, created_at
+		SELECT id, slug, name, phone_number, kelas, qr_token, rsvp_status, is_attended, attended_at, meal_taken_at, created_at
 		FROM guests WHERE slug = ?
 	`, slug).Scan(
-		&guest.ID, &guest.Slug, &guest.Name, &guest.PhoneNumber, &guest.QRToken,
-		&guest.RSVPStatus, &guest.IsAttended, &attendedAt, &createdAt,
+		&guest.ID, &guest.Slug, &guest.Name, &guest.PhoneNumber, &guest.Kelas, &guest.QRToken,
+		&guest.RSVPStatus, &guest.IsAttended, &attendedAt, &mealTakenAt, &createdAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get guest by slug: %w", err)
@@ -172,6 +176,10 @@ func (r *Repository) GetGuestBySlug(slug string) (*models.Guest, error) {
 	if attendedAt.Valid {
 		t, _ := time.Parse("2006-01-02 15:04:05", attendedAt.String)
 		guest.AttendedAt = sql.NullTime{Time: t, Valid: true}
+	}
+	if mealTakenAt.Valid {
+		t, _ := time.Parse("2006-01-02 15:04:05", mealTakenAt.String)
+		guest.MealTakenAt = sql.NullTime{Time: t, Valid: true}
 	}
 	if createdAt.Valid {
 		guest.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt.String)
@@ -181,13 +189,13 @@ func (r *Repository) GetGuestBySlug(slug string) (*models.Guest, error) {
 
 func (r *Repository) GetGuestByID(id int64) (*models.Guest, error) {
 	guest := &models.Guest{}
-	var attendedAt, createdAt sql.NullString
+	var attendedAt, mealTakenAt, createdAt sql.NullString
 	err := r.db.QueryRow(`
-		SELECT id, slug, name, phone_number, qr_token, rsvp_status, is_attended, attended_at, created_at
+		SELECT id, slug, name, phone_number, kelas, qr_token, rsvp_status, is_attended, attended_at, meal_taken_at, created_at
 		FROM guests WHERE id = ?
 	`, id).Scan(
-		&guest.ID, &guest.Slug, &guest.Name, &guest.PhoneNumber, &guest.QRToken,
-		&guest.RSVPStatus, &guest.IsAttended, &attendedAt, &createdAt,
+		&guest.ID, &guest.Slug, &guest.Name, &guest.PhoneNumber, &guest.Kelas, &guest.QRToken,
+		&guest.RSVPStatus, &guest.IsAttended, &attendedAt, &mealTakenAt, &createdAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get guest by id: %w", err)
@@ -195,6 +203,10 @@ func (r *Repository) GetGuestByID(id int64) (*models.Guest, error) {
 	if attendedAt.Valid {
 		t, _ := time.Parse("2006-01-02 15:04:05", attendedAt.String)
 		guest.AttendedAt = sql.NullTime{Time: t, Valid: true}
+	}
+	if mealTakenAt.Valid {
+		t, _ := time.Parse("2006-01-02 15:04:05", mealTakenAt.String)
+		guest.MealTakenAt = sql.NullTime{Time: t, Valid: true}
 	}
 	if createdAt.Valid {
 		guest.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt.String)
@@ -204,13 +216,13 @@ func (r *Repository) GetGuestByID(id int64) (*models.Guest, error) {
 
 func (r *Repository) GetGuestByQRToken(qrToken string) (*models.Guest, error) {
 	guest := &models.Guest{}
-	var attendedAt, createdAt sql.NullString
+	var attendedAt, mealTakenAt, createdAt sql.NullString
 	err := r.db.QueryRow(`
-		SELECT id, slug, name, phone_number, qr_token, rsvp_status, is_attended, attended_at, created_at
+		SELECT id, slug, name, phone_number, kelas, qr_token, rsvp_status, is_attended, attended_at, meal_taken_at, created_at
 		FROM guests WHERE qr_token = ?
 	`, qrToken).Scan(
-		&guest.ID, &guest.Slug, &guest.Name, &guest.PhoneNumber, &guest.QRToken,
-		&guest.RSVPStatus, &guest.IsAttended, &attendedAt, &createdAt,
+		&guest.ID, &guest.Slug, &guest.Name, &guest.PhoneNumber, &guest.Kelas, &guest.QRToken,
+		&guest.RSVPStatus, &guest.IsAttended, &attendedAt, &mealTakenAt, &createdAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get guest by qr token: %w", err)
@@ -218,6 +230,10 @@ func (r *Repository) GetGuestByQRToken(qrToken string) (*models.Guest, error) {
 	if attendedAt.Valid {
 		t, _ := time.Parse("2006-01-02 15:04:05", attendedAt.String)
 		guest.AttendedAt = sql.NullTime{Time: t, Valid: true}
+	}
+	if mealTakenAt.Valid {
+		t, _ := time.Parse("2006-01-02 15:04:05", mealTakenAt.String)
+		guest.MealTakenAt = sql.NullTime{Time: t, Valid: true}
 	}
 	if createdAt.Valid {
 		guest.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt.String)
@@ -227,7 +243,7 @@ func (r *Repository) GetGuestByQRToken(qrToken string) (*models.Guest, error) {
 
 func (r *Repository) GetAllGuests() ([]models.Guest, error) {
 	rows, err := r.db.Query(`
-		SELECT id, slug, name, phone_number, qr_token, rsvp_status, is_attended, attended_at, created_at
+		SELECT id, slug, name, phone_number, kelas, qr_token, rsvp_status, is_attended, attended_at, meal_taken_at, created_at
 		FROM guests ORDER BY created_at DESC
 	`)
 	if err != nil {
@@ -238,10 +254,10 @@ func (r *Repository) GetAllGuests() ([]models.Guest, error) {
 	var guests []models.Guest
 	for rows.Next() {
 		guest := models.Guest{}
-		var attendedAt, createdAt sql.NullString
+		var attendedAt, mealTakenAt, createdAt sql.NullString
 		err := rows.Scan(
-			&guest.ID, &guest.Slug, &guest.Name, &guest.PhoneNumber, &guest.QRToken,
-			&guest.RSVPStatus, &guest.IsAttended, &attendedAt, &createdAt,
+			&guest.ID, &guest.Slug, &guest.Name, &guest.PhoneNumber, &guest.Kelas, &guest.QRToken,
+			&guest.RSVPStatus, &guest.IsAttended, &attendedAt, &mealTakenAt, &createdAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan guest: %w", err)
@@ -249,6 +265,10 @@ func (r *Repository) GetAllGuests() ([]models.Guest, error) {
 		if attendedAt.Valid {
 			t, _ := time.Parse("2006-01-02 15:04:05", attendedAt.String)
 			guest.AttendedAt = sql.NullTime{Time: t, Valid: true}
+		}
+		if mealTakenAt.Valid {
+			t, _ := time.Parse("2006-01-02 15:04:05", mealTakenAt.String)
+			guest.MealTakenAt = sql.NullTime{Time: t, Valid: true}
 		}
 		if createdAt.Valid {
 			guest.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt.String)
@@ -267,9 +287,9 @@ func (r *Repository) CreateGuest(guest *models.Guest) error {
 	}
 
 	result, err := r.db.Exec(`
-		INSERT INTO guests (slug, name, phone_number, qr_token, rsvp_status, is_attended, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
-	`, guest.Slug, guest.Name, guest.PhoneNumber, guest.QRToken, guest.RSVPStatus, guest.IsAttended, time.Now())
+		INSERT INTO guests (slug, name, phone_number, kelas, qr_token, rsvp_status, is_attended, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`, guest.Slug, guest.Name, guest.PhoneNumber, guest.Kelas, guest.QRToken, guest.RSVPStatus, guest.IsAttended, time.Now())
 	if err != nil {
 		return fmt.Errorf("failed to create guest: %w", err)
 	}
@@ -285,9 +305,9 @@ func (r *Repository) CreateGuest(guest *models.Guest) error {
 func (r *Repository) UpdateGuest(guest *models.Guest) error {
 	_, err := r.db.Exec(`
 		UPDATE guests
-		SET slug = ?, name = ?, phone_number = ?, rsvp_status = ?, is_attended = ?, attended_at = ?
+		SET slug = ?, name = ?, phone_number = ?, kelas = ?, rsvp_status = ?, is_attended = ?, attended_at = ?
 		WHERE id = ?
-	`, guest.Slug, guest.Name, guest.PhoneNumber, guest.RSVPStatus, guest.IsAttended, guest.AttendedAt, guest.ID)
+	`, guest.Slug, guest.Name, guest.PhoneNumber, guest.Kelas, guest.RSVPStatus, guest.IsAttended, guest.AttendedAt, guest.ID)
 	if err != nil {
 		return fmt.Errorf("failed to update guest: %w", err)
 	}
@@ -318,6 +338,68 @@ func (r *Repository) MarkAttended(qrToken string) error {
 		return fmt.Errorf("failed to mark attended: %w", err)
 	}
 	return nil
+}
+
+func (r *Repository) MarkMeal(qrToken string) (bool, error) {
+	result, err := r.db.Exec(`
+		UPDATE guests SET meal_taken_at = ? WHERE qr_token = ? AND meal_taken_at IS NULL
+	`, time.Now(), qrToken)
+	if err != nil {
+		return false, fmt.Errorf("failed to mark meal: %w", err)
+	}
+	affected, _ := result.RowsAffected()
+	return affected > 0, nil
+}
+
+func (r *Repository) ResetMeal(id int64) error {
+	_, err := r.db.Exec(`UPDATE guests SET meal_taken_at = NULL WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("failed to reset meal: %w", err)
+	}
+	return nil
+}
+
+func (r *Repository) GetMealStats() (*models.MealStats, error) {
+	stats := &models.MealStats{}
+
+	err := r.db.QueryRow("SELECT COUNT(*) FROM guests").Scan(&stats.TotalGuests)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count guests: %w", err)
+	}
+
+	err = r.db.QueryRow("SELECT COUNT(*) FROM guests WHERE meal_taken_at IS NOT NULL").Scan(&stats.MealTaken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count meals: %w", err)
+	}
+
+	stats.MealRemain = stats.TotalGuests - stats.MealTaken
+	return stats, nil
+}
+
+func (r *Repository) GetMealCheckins() ([]models.MealCheckin, error) {
+	rows, err := r.db.Query(`
+		SELECT id, name, phone_number, meal_taken_at
+		FROM guests WHERE meal_taken_at IS NOT NULL
+		ORDER BY meal_taken_at DESC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get meal checkins: %w", err)
+	}
+	defer rows.Close()
+
+	var checkins []models.MealCheckin
+	for rows.Next() {
+		var c models.MealCheckin
+		var mealTakenAt sql.NullString
+		if err := rows.Scan(&c.ID, &c.Name, &c.PhoneNumber, &mealTakenAt); err != nil {
+			return nil, fmt.Errorf("failed to scan meal checkin: %w", err)
+		}
+		if mealTakenAt.Valid {
+			c.MealTakenAt, _ = time.Parse("2006-01-02 15:04:05", mealTakenAt.String)
+		}
+		checkins = append(checkins, c)
+	}
+	return checkins, nil
 }
 
 func (r *Repository) InsertGuestbook(guestID int64, message string) error {
@@ -585,8 +667,8 @@ func (r *Repository) ImportGuests(guests []models.Guest) error {
 	defer tx.Rollback()
 
 	stmt, err := tx.Prepare(`
-		INSERT INTO guests (slug, name, phone_number, qr_token, rsvp_status, is_attended, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO guests (slug, name, phone_number, kelas, qr_token, rsvp_status, is_attended, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
@@ -602,7 +684,7 @@ func (r *Repository) ImportGuests(guests []models.Guest) error {
 		}
 		guest.PhoneNumber = normalizePhone(guest.PhoneNumber)
 
-		_, err := stmt.Exec(guest.Slug, guest.Name, guest.PhoneNumber, guest.QRToken, guest.RSVPStatus, guest.IsAttended, time.Now())
+		_, err := stmt.Exec(guest.Slug, guest.Name, guest.PhoneNumber, guest.Kelas, guest.QRToken, guest.RSVPStatus, guest.IsAttended, time.Now())
 		if err != nil {
 			return fmt.Errorf("failed to insert guest during import: %w", err)
 		}

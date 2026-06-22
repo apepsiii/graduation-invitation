@@ -7,6 +7,7 @@ Platform undangan digital untuk acara perpisahan SMK NIBA Business School Bogor.
 - **Undangan Personal** - Setiap tamu mendapat undangan dengan tautan unik dan QR code
 - **RSVP Online** - Konfirmasi kehadiran secara digital
 - **QR Check-in** - Scan QR code untuk validasi kehadiran
+- **Cetak Gelang (Bracelet)** - Generate gelang bulk A4 dengan QR + nama + kelas (10 gelang/halaman)
 - **Guestbook** - Ucapan dan doa dari tamu
 - **Broadcast WhatsApp** - Kirim undangan via WhatsApp (OneSender API)
 - **Dashboard Admin** - Kelola tamu, acara, galeri, dan pesan
@@ -127,6 +128,7 @@ Upload binary baru ke VPS, jalankan, pilih menu "Update":
 | `/admin/login` | GET/POST | Login |
 | `/admin/dashboard` | GET | Dashboard |
 | `/admin/guests` | GET | Guest management |
+| `/admin/bracelet` | GET | Cetak gelang bulk A4 |
 | `/admin/settings` | GET | Settings |
 | `/admin/scanner` | GET | QR Scanner |
 | `/admin/api/broadcast` | POST | WhatsApp broadcast |
@@ -145,7 +147,7 @@ Upload binary baru ke VPS, jalankan, pilih menu "Update":
 ## Database Schema
 
 - `event_settings` - Konfigurasi acara + OneSender
-- `guests` - Data tamu dengan slug, QR token, RSVP
+- `guests` - Data tamu (slug, name, kelas, phone, QR token, RSVP, attendance)
 - `guestbooks` - Ucapan/doa dari tamu (1 per tamu)
 - `rundowns` - Susunan acara
 - `galleries` - Galeri foto
@@ -182,11 +184,14 @@ undangan-digital/
 │       ├── guestbooks.html
 │       ├── settings.html
 │       ├── scanner.html
-│       ├── rundowns.html
-│       └── galleries.html
+│   ├── rundowns.html
+│   ├── galleries.html
+│   └── bracelet.html                # Cetak gelang bulk A4
 ├── assets/
 │   ├── qrcode.min.js
-│   └── uploads/             # Gallery images
+│   └── uploads/
+│       └── ticket/
+│           └── template.png         # Template gelang (background)
 ├── database/
 ├── AGENTS.md
 ├── README.md
@@ -200,4 +205,4 @@ MIT License - SMK NIBA Business School Bogor
 
 ## Author
 
-Developed for SMK NIBA Business School Bogor - Perpisahan Ke-10
+Developed for SMK NIBA Business School Bogor - Perpisahan Ke-8 (2026)

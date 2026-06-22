@@ -10,12 +10,27 @@ import (
 )
 
 func extractFS(fsys fs.FS, subDir, destDir string) error {
+	if subDir == "" {
+		subDir = "."
+	}
+
 	return fs.WalkDir(fsys, subDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		destPath := filepath.Join(destDir, path)
+		relPath, err := filepath.Rel(subDir, path)
+		if err != nil {
+			relPath = path
+		}
+		if relPath == "." {
+			if d.IsDir() {
+				return os.MkdirAll(destDir, 0755)
+			}
+			return nil
+		}
+
+		destPath := filepath.Join(destDir, relPath)
 
 		if d.IsDir() {
 			return os.MkdirAll(destPath, 0755)

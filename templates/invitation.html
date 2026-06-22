@@ -221,7 +221,7 @@
 
 <section class="page cover" id="cover" aria-label="Cover">
   <header class="cover-top">
-    <span>Perpisahan Ke-10</span>
+    <span>Perpisahan Ke-8</span>
     <span class="mark">NIBA</span>
     <span>An Invitation</span>
   </header>
@@ -229,7 +229,7 @@
   <div class="cover-body">
     <div class="monogram" aria-hidden="true">{{.initial}}</div>
     <div class="cover-kicker">Graduation · {{if .settings.EventDate}}{{.settings.EventDate}}{{else}}MMXXVI{{end}}</div>
-    <h2 class="cover-name">The 10th<br><em>Graduation Ceremony</em></h2>
+    <h2 class="cover-name">The 8th<br><em>Graduation Ceremony</em></h2>
     <p class="cover-greet">SMK NIBA Business School Bogor</p>
     <p style="font-family:var(--serif);font-style:italic;font-size:clamp(14px,2.5vw,18px);color:var(--ink-soft);animation:rise 1.1s .95s both;">We cordially invite you to attend</p>
     <p style="font-size:10px;letter-spacing:0.3em;text-transform:uppercase;color:var(--accent);animation:rise 1s 1.05s both;">Kepada Yth. {{.guest.Name}}</p>
@@ -261,7 +261,7 @@
     </div>
 
     <header class="details-head">
-      <div class="kicker">Acara Perpisahan Ke-10</div>
+      <div class="kicker">Acara Perpisahan Ke-8</div>
       <h1>Graduation<br><em>Ceremony</em></h1>
       <p class="lede">
         Dengan segala kerendahan hati, kami mengundang Anda untuk menghadiri
@@ -275,8 +275,8 @@
     <section class="grid" aria-label="Ceremony details">
       <div class="cell">
         <div class="label">Tanggal</div>
-        <div class="value">{{if .settings.EventDate}}{{.settings.EventDate}}{{else}}Segera{{end}}</div>
-        <div class="sub">{{.settings.EventTime}}</div>
+        <div class="value" id="event-date-full">{{if .settings.EventDate}}{{.settings.EventDate}}{{else}}Segera{{end}}</div>
+        <div class="sub" id="event-time-full">{{.settings.EventTime}}</div>
       </div>
       <div class="cell">
         <div class="label">Tempat</div>
@@ -291,11 +291,12 @@
     </section>
 
     {{if .settings.MapsLink}}
-    <div class="map-wrap">
-      <div class="label" style="font-size:10px;letter-spacing:0.3em;text-transform:uppercase;color:var(--ink-soft);">Lokasi</div>
-      <div class="map-frame">
-        <iframe src="{{.settings.MapsLink}}" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-      </div>
+    <div style="margin-top:24px;">
+      <div class="label" style="font-size:10px;letter-spacing:0.3em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:12px;">Lokasi</div>
+      <a href="{{.settings.MapsLink}}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--ink);color:white;text-decoration:none;border-radius:8px;font-size:13px;font-weight:500;transition:all 0.2s;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        Buka di Google Maps
+      </a>
     </div>
     {{end}}
 
@@ -395,7 +396,7 @@
 
     <footer class="closing">
       <div class="sign">Terima kasih atas doa dan dukungan Anda</div>
-      <div class="small">SMK NIBA Business School Bogor · Perpisahan Ke-10</div>
+      <div class="small">SMK NIBA Business School Bogor · Perpisahan Ke-8</div>
     </footer>
 
   </div>
@@ -472,6 +473,29 @@
   var dateStr = '{{.settings.EventDate}}';
   var timeStr = '{{.settings.EventTime}}';
   var target = null;
+
+  var hariNama = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  var bulanNama = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+  if (dateStr) {
+    try {
+      var dateParts = dateStr.split('-');
+      if (dateParts.length === 3) {
+        var year = parseInt(dateParts[0]);
+        var month = parseInt(dateParts[1]) - 1;
+        var day = parseInt(dateParts[2]);
+        var dateObj = new Date(year, month, day);
+        
+        if (!isNaN(dateObj.getTime())) {
+          var hari = hariNama[dateObj.getDay()];
+          var bulan = bulanNama[month];
+          var formattedDate = hari + ',<br>' + day + ' ' + bulan + ' ' + year;
+          document.getElementById('event-date-full').innerHTML = formattedDate;
+        }
+      }
+    } catch (e) {}
+  }
+
   try {
     var t = (timeStr || '').split(/[-–]/)[0].trim();
     var iso = dateStr + 'T';

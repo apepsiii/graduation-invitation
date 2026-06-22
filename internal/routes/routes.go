@@ -82,6 +82,9 @@ func SetupRouter(h *handlers.Handler, session *middleware.SessionManager) *gin.E
 		protected.GET("/rundowns", h.GetAdminRundownsPage)
 		protected.GET("/galleries", h.GetAdminGalleriesPage)
 		protected.GET("/guestbooks", h.GetAdminGuestbooksPage)
+		protected.GET("/meal", h.GetAdminMealPage)
+		protected.GET("/bracelet", h.GetAdminBracelet)
+		protected.GET("/template-preview", h.GetTemplatePreview)
 
 		protected.POST("/api/settings", h.PostAdminSettings)
 
@@ -89,9 +92,15 @@ func SetupRouter(h *handlers.Handler, session *middleware.SessionManager) *gin.E
 		protected.PUT("/api/guests", h.PutAdminGuest)
 		protected.DELETE("/api/guests/:id", h.DeleteAdminGuest)
 		protected.POST("/api/guests/import", h.PostAdminImportGuests)
+		protected.GET("/api/guests/qrcodes", h.DownloadQRCodes)
 
 		protected.POST("/api/scan", h.PostScan)
 		protected.GET("/api/stats", h.GetStatsAPI)
+
+		protected.POST("/api/meal/scan", h.PostMealScan)
+		protected.GET("/api/meal/stats", h.GetMealStatsAPI)
+		protected.GET("/api/meal/checkins", h.GetMealCheckinsAPI)
+		protected.DELETE("/api/meal/:id", h.ResetMeal)
 
 		protected.GET("/api/rundowns", h.GetAdminRundowns)
 		protected.POST("/api/rundowns", h.PostAdminRundown)
@@ -105,6 +114,8 @@ func SetupRouter(h *handlers.Handler, session *middleware.SessionManager) *gin.E
 
 		protected.POST("/api/broadcast", h.PostAdminBroadcast)
 		protected.POST("/api/broadcast/test", h.PostAdminBroadcastTest)
+		protected.GET("/api/broadcast/status", h.GetBroadcastStatus)
+		protected.POST("/api/broadcast/single", h.SendSingleWhatsApp)
 	}
 
 	api := router.Group("/api/admin")

@@ -68,6 +68,19 @@
 - [x] Uninstall feature
 - [x] Cross-compile for Linux amd64
 
+### Phase 7: Bracelet (Gelang) Bulk Print (DONE)
+- [x] Field `kelas` added to `guests` table (auto-migration via ALTER TABLE)
+- [x] CSV import accepts new column `kelas` (format: `name,phone_number,kelas,slug`)
+- [x] Form Tambah/Edit Guest updated with `kelas` field
+- [x] Bracelet page (`/admin/bracelet`) - 10 gelang per A4 portrait page
+- [x] Bracelet dimensions: 2cm × 23cm (vertical, as worn on wrist)
+- [x] Server-side QR code generation (base64 PNG embedded in HTML)
+- [x] Background image from `assets/uploads/ticket/template.png`
+- [x] Content includes: title "8th - 2026 NIBA Graduation", venue/date, school logo (SVG house), student name + kelas, QR code, scan instruction
+- [x] Print button → Save as PDF (browser print dialog, scale 100%)
+- [x] Guests sorted by kelas then name
+- [x] "Perpisahan Ke-10" → "Perpisahan Ke-8" in all templates
+
 ---
 
 ## Backend Architecture
@@ -101,9 +114,13 @@ templates/
     scanner.html                     QR scanner
     rundowns.html                    Rundown CRUD
     galleries.html                   Gallery CRUD with upload
+    meal.html                        Meal/Consumption tracking
+    bracelet.html                    Bulk print gelang A4 (2cm × 23cm × 10/page)
 assets/
   qrcode.min.js                      QR code library (local, not CDN)
   uploads/                           Gallery image uploads
+  uploads/ticket/                    Bracelet template assets
+    template.png                     Background design for gelang
 ```
 
 ---
@@ -136,6 +153,8 @@ assets/
 | GET | `/admin/scanner` | QR scanner page |
 | GET | `/admin/rundowns` | Rundown management page |
 | GET | `/admin/galleries` | Gallery management page |
+| GET | `/admin/meal` | Meal/Consumption tracking page |
+| GET | `/admin/bracelet` | Bulk print gelang A4 (10/page) |
 
 ### Admin API (Session Protected)
 | Method | Endpoint | Description |
@@ -191,6 +210,23 @@ assets/
 - Update menu (new binary + templates)
 - Uninstall option
 
+### 5. Bracelet (Gelang) Bulk Print
+- Halaman: `/admin/bracelet`
+- Layout: A4 portrait, 10 gelang per halaman (2cm × 23cm per gelang)
+- Orientasi: vertikal (konten di-rotate 90° CCW dari desain horizontal)
+- QR code: di-generate server-side sebagai base64 PNG
+- Background: `assets/uploads/ticket/template.png`
+- Konten gelang: judul event, venue/tanggal, logo sekolah (SVG), nama siswa, kelas, QR, instruksi scan
+- Sorting: by kelas → nama
+- Output: print ke A4 / Save as PDF (atur printer ke Scale 100%)
+
+### 6. Tim Konsumsi (Meal Tracking)
+- Halaman: `/admin/meal`
+- Scan QR kedua kali untuk verifikasi makanan
+- Reset meal untuk tamu yang salah scan
+- Stats: total tamu, sudah ambil makan, sisa
+- API: `/admin/api/meal/scan`, `/admin/api/meal/stats`, `/admin/api/meal/checkins`
+
 ---
 
 ## Database Schema
@@ -200,7 +236,7 @@ assets/
 - onesender_url, onesender_api_key, app_base_url
 
 ### `guests`
-- id, slug (unique), name, phone_number, qr_token (unique), rsvp_status, is_attended, attended_at, created_at
+- id, slug (unique), name, phone_number, kelas, qr_token (unique), rsvp_status, is_attended, attended_at, meal_taken_at, created_at
 
 ### `guestbooks`
 - id, guest_id (FK), message, created_at
@@ -303,4 +339,7 @@ type Handler struct {
 12. **QR Code** - Switched from CDN to local library, toDataURL with retry
 13. **Navbar Consistency** - All admin pages have identical navbar (7 links)
 14. **Guestbook Dedup** - 1 message per guest, upsert on new submission
-15. **Schema Migration** - Auto ALTER TABLE for new columns (onesender fields)
+15. **Schema Migration** - Auto ALTER TABLE for new columns (onesender fields, meal_taken_at, kelas)
+16. **Perpisahan Edition** - "Ke-10" → "Ke-8" updated in all templates
+17. **Bracelet Layout** - Server-side QR generation, CSS rotation for vertical wristband, A4 print-friendly pagination
+18. **Meal Tracking** - Separate second-scan endpoint for meal consumption (different from check-in)

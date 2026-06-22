@@ -61,6 +61,7 @@
             <a href="/admin/galleries">Galeri</a>
             <a href="/admin/settings">Pengaturan</a>
             <a href="/admin/scanner">Scanner</a>
+            <a href="/admin/meal">Konsumsi</a>
             <a href="/admin/logout">Logout</a>
         </div>
     </nav>
@@ -69,18 +70,21 @@
             <div class="card-header">
                 <h2 class="card-title">Manajemen Tamu</h2>
                 <div style="display: flex; gap: 8px;">
+                    <a href="/admin/api/guests/qrcodes" class="btn btn-outline" title="Download semua QR code (ZIP)">⬇️ Download QR</a>
+                    <a href="/admin/bracelet" target="_blank" class="btn btn-outline">🎫 Cetak Gelang</a>
                     <button class="btn btn-outline" onclick="openBroadcastModal()">📣 Broadcast WA</button>
                     <button class="btn btn-outline" onclick="openImportModal()">Import CSV</button>
                     <button class="btn btn-primary" onclick="openAddModal()">+ Tambah</button>
                 </div>
             </div>
             <table>
-                <thead><tr><th style="width:40px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th><th>Nama</th><th>Slug</th><th>No. WA</th><th>RSVP</th><th>Check-in</th><th>Aksi</th></tr></thead>
+                <thead><tr><th style="width:40px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th><th>Nama</th><th>Kelas</th><th>Slug</th><th>No. WA</th><th>RSVP</th><th>Check-in</th><th>Aksi</th></tr></thead>
                 <tbody id="guestTableBody">
                     {{range .guests}}
                     <tr id="row-{{.ID}}">
                         <td><input type="checkbox" class="guest-checkbox" value="{{.ID}}" data-name="{{.Name}}" data-phone="{{.PhoneNumber}}"></td>
                         <td>{{.Name}}</td>
+                        <td><span style="font-size:12px;color:var(--gray-600);">{{.Kelas}}</span></td>
                         <td><code style="font-size: 11px; color: var(--gray-500);">{{.Slug}}</code></td>
                         <td>{{.PhoneNumber}}</td>
                         <td><span class="badge {{if eq .RSVPStatus "Hadir"}}badge-hadir{{else if eq .RSVPStatus "Tidak Hadir"}}badge-tidak{{else if eq .RSVPStatus "Ragu"}}badge-ragu{{else}}badge-belum{{end}}">{{.RSVPStatus}}</span></td>
@@ -88,13 +92,14 @@
                         <td>
                             <div class="actions">
                                 <a href="/undangan/{{.Slug}}" target="_blank" class="btn btn-outline btn-sm">Lihat</a>
-                                <button class="btn btn-outline btn-sm" onclick="editGuest('{{.ID}}', '{{.Name}}', '{{.Slug}}', '{{.PhoneNumber}}')">Edit</button>
+                                <button class="btn btn-outline btn-sm" onclick="sendSingleWA('{{.ID}}', '{{.Name}}', '{{.PhoneNumber}}', '{{.Slug}}')">Kirim WA</button>
+                                <button class="btn btn-outline btn-sm" onclick="editGuest('{{.ID}}', '{{.Name}}', '{{.Slug}}', '{{.PhoneNumber}}', '{{.Kelas}}')">Edit</button>
                                 <button class="btn btn-danger btn-sm" onclick="deleteGuest('{{.ID}}')">Hapus</button>
                             </div>
                         </td>
                     </tr>
                     {{else}}
-                    <tr><td colspan="7"><div class="empty">Belum ada data tamu. Klik "+ Tambah" atau "Import CSV".</div></td></tr>
+                    <tr><td colspan="8"><div class="empty">Belum ada data tamu. Klik "+ Tambah" atau "Import CSV".</div></td></tr>
                     {{end}}
                 </tbody>
             </table>
@@ -107,6 +112,7 @@
             <form id="guestForm" onsubmit="submitGuest(event)">
                 <input type="hidden" id="editId" value="">
                 <div class="form-group"><label>Nama</label><input type="text" id="guestName" required></div>
+                <div class="form-group"><label>Kelas</label><input type="text" id="guestKelas" placeholder="cth: XII-A"></div>
                 <div class="form-group"><label>Slug (opsional)</label><input type="text" id="guestSlug" placeholder="auto-generated if empty"></div>
                 <div class="form-group"><label>No. WhatsApp</label><input type="text" id="guestPhone"></div>
                 <button type="submit" class="btn btn-primary" style="width: 100%;">Simpan</button>
@@ -118,7 +124,7 @@
         <div class="modal-content">
             <div class="modal-header"><h3>Import dari CSV</h3><button class="modal-close" onclick="closeImportModal()">&times;</button></div>
             <p style="font-size: 12px; color: var(--gray-500); margin-bottom: 16px;">
-                Format CSV: <code>name,phone_number,slug(optional)</code><br>
+                Format CSV: <code>name,phone_number,kelas,slug(optional)</code><br>
                 Baris pertama dianggap header.
             </p>
             <form id="importForm" onsubmit="submitImport(event)">
@@ -160,15 +166,17 @@
             document.getElementById('modalTitle').textContent = 'Tambah Tamu';
             document.getElementById('editId').value = '';
             document.getElementById('guestName').value = '';
+            document.getElementById('guestKelas').value = '';
             document.getElementById('guestSlug').value = '';
             document.getElementById('guestPhone').value = '';
             document.getElementById('addModal').classList.add('active');
         }
 
-        function editGuest(id, name, slug, phone) {
+        function editGuest(id, name, slug, phone, kelas) {
             document.getElementById('modalTitle').textContent = 'Edit Tamu';
             document.getElementById('editId').value = id;
             document.getElementById('guestName').value = name;
+            document.getElementById('guestKelas').value = kelas || '';
             document.getElementById('guestSlug').value = slug;
             document.getElementById('guestPhone').value = phone;
             document.getElementById('addModal').classList.add('active');
@@ -191,6 +199,7 @@
             const editId = document.getElementById('editId').value;
             const data = new FormData();
             data.append('name', document.getElementById('guestName').value);
+            data.append('kelas', document.getElementById('guestKelas').value);
             data.append('slug', document.getElementById('guestSlug').value);
             data.append('phone_number', document.getElementById('guestPhone').value);
 
@@ -226,6 +235,29 @@
                     }
                 })
                 .catch(err => alert('Error: ' + err));
+        }
+
+        function sendSingleWA(id, name, phone, slug) {
+            if (!phone) {
+                alert('Nomor WhatsApp kosong');
+                return;
+            }
+            if (!confirm('Kirim undangan WhatsApp ke ' + name + ' (' + phone + ')?')) return;
+            
+            fetch('/admin/api/broadcast/single', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ guest_id: parseInt(id) })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.status === 'success') {
+                    alert('✓ Pesan terkirim ke ' + name + '!');
+                } else {
+                    alert('✗ Error: ' + (result.error || 'Unknown error'));
+                }
+            })
+            .catch(err => alert('Error: ' + err));
         }
 
         function submitImport(e) {
@@ -287,6 +319,10 @@
             const data = { message: message, image_url: imageURL };
             if (guestIds.length > 0) data.guest_ids = guestIds;
 
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Mengirim...';
+
             fetch('/admin/api/broadcast', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -294,21 +330,66 @@
             })
             .then(res => res.json())
             .then(result => {
+                btn.disabled = false;
+                btn.textContent = 'Kirim Broadcast';
                 if (result.status === 'success') {
-                    alert(result.message + '\n\nProses berjalan di background.');
+                    alert('✓ Broadcast dimulai untuk ' + result.count + ' tamu!\n\nKlik "Cek Status" untuk melihat progress.');
                     closeBroadcastModal();
+                    pollBroadcastStatus();
                 } else {
-                    alert('Error: ' + (result.error || 'Unknown error'));
+                    alert('✗ Error: ' + (result.error || 'Unknown error'));
                 }
             })
-            .catch(err => alert('Error: ' + err));
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = 'Kirim Broadcast';
+                alert('Error: ' + err);
+            });
+        }
+
+        let statusInterval = null;
+        function pollBroadcastStatus() {
+            if (statusInterval) clearInterval(statusInterval);
+            
+            const statusDiv = document.createElement('div');
+            statusDiv.id = 'broadcastStatus';
+            statusDiv.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#1f2937;color:#fff;padding:16px 20px;border-radius:8px;font-size:13px;z-index:9999;max-width:300px;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+            statusDiv.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><b>Broadcast Status</b><button onclick="this.parentElement.parentElement.remove();clearInterval(statusInterval);" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:18px;">&times;</button></div><div id="statusContent">Memuat...</div>';
+            document.body.appendChild(statusDiv);
+
+            statusInterval = setInterval(() => {
+                fetch('/admin/api/broadcast/status')
+                    .then(res => res.json())
+                    .then(data => {
+                        const content = document.getElementById('statusContent');
+                        if (data.running) {
+                            content.innerHTML = '<span style="color:#fbbf24;">⏳ Sedang mengirim...</span><br>Total: ' + data.total + ' | Sukses: ' + data.success + ' | Gagal: ' + data.failed;
+                        } else if (data.total > 0) {
+                            const color = data.failed === 0 ? '#34d399' : '#f87171';
+                            content.innerHTML = '<span style="color:' + color + ';">' + (data.failed === 0 ? '✓ Selesai!' : '⚠ Selesai dengan error') + '</span><br>Total: ' + data.total + ' | Sukses: ' + data.success + ' | Gagal: ' + data.failed;
+                            if (data.errors && data.errors.length > 0) {
+                                content.innerHTML += '<br><details style="margin-top:8px;cursor:pointer;"><summary style="color:#9ca3af;">Lihat error (' + data.errors.length + ')</summary><div style="margin-top:4px;font-size:11px;color:#f87171;max-height:100px;overflow-y:auto;">' + data.errors.slice(0,10).join('<br>') + (data.errors.length > 10 ? '<br>...' : '') + '</div></details>';
+                            }
+                            clearInterval(statusInterval);
+                        } else {
+                            content.innerHTML = 'Belum ada broadcast.';
+                        }
+                    })
+                    .catch(err => {
+                        document.getElementById('statusContent').textContent = 'Error: ' + err;
+                    });
+            }, 2000);
         }
 
         function testBroadcast() {
             const message = document.getElementById('broadcastMessage').value;
             const imageURL = document.getElementById('broadcastImage').value;
-            const phone = prompt('Masukkan nomor WhatsApp untuk test (format: 628xxx):');
+            const phone = prompt('Masukkan nomor WhatsApp untuk test:\n(format: 08xxx atau 628xxx):');
             if (!phone) return;
+
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Mengirim test...';
 
             fetch('/admin/api/broadcast/test', {
                 method: 'POST',
@@ -317,13 +398,19 @@
             })
             .then(res => res.json())
             .then(result => {
+                btn.disabled = false;
+                btn.textContent = 'Test Kirim';
                 if (result.status === 'success') {
-                    alert('Test berhasil! Cek WhatsApp Anda.');
+                    alert('✓ Test berhasil!\n\nResponse OneSender:\n' + result.onesender_response);
                 } else {
-                    alert('Error: ' + (result.error || 'Unknown error'));
+                    alert('✗ Error: ' + (result.error || 'Unknown error'));
                 }
             })
-            .catch(err => alert('Error: ' + err));
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = 'Test Kirim';
+                alert('Error: ' + err);
+            });
         }
     </script>
 </body>
