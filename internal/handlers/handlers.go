@@ -477,9 +477,38 @@ func (h *Handler) PostAdminImportGuests(c *gin.Context) {
 }
 
 func (h *Handler) GetAdminScanner(c *gin.Context) {
+	checkins, err := h.repo.GetAttendanceCheckins()
+	if err != nil {
+		checkins = []models.AttendanceCheckin{}
+	}
+	stats, _ := h.repo.GetStats()
 	c.HTML(http.StatusOK, "admin/scanner.html", gin.H{
-		"title": "QR Scanner",
+		"title":    "QR Scanner",
+		"checkins": checkins,
+		"stats":    stats,
 	})
+}
+
+func (h *Handler) GetAttendanceCheckinsAPI(c *gin.Context) {
+	checkins, err := h.repo.GetAttendanceCheckins()
+	if err != nil {
+		checkins = []models.AttendanceCheckin{}
+	}
+	c.JSON(http.StatusOK, gin.H{"checkins": checkins})
+}
+
+func (h *Handler) ResetAttendance(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+	if err := h.repo.ResetAttendance(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reset attendance"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
 func (h *Handler) GetStatsAPI(c *gin.Context) {

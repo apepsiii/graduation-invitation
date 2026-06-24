@@ -402,6 +402,40 @@ func (r *Repository) GetMealCheckins() ([]models.MealCheckin, error) {
 	return checkins, nil
 }
 
+func (r *Repository) GetAttendanceCheckins() ([]models.AttendanceCheckin, error) {
+	rows, err := r.db.Query(`
+		SELECT id, name, phone_number, kelas, attended_at
+		FROM guests WHERE attended_at IS NOT NULL
+		ORDER BY attended_at DESC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attendance checkins: %w", err)
+	}
+	defer rows.Close()
+
+	var checkins []models.AttendanceCheckin
+	for rows.Next() {
+		var c models.AttendanceCheckin
+		var attendedAt sql.NullString
+		if err := rows.Scan(&c.ID, &c.Name, &c.PhoneNumber, &c.Kelas, &attendedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan attendance checkin: %w", err)
+		}
+		if attendedAt.Valid {
+			c.AttendedAt, _ = time.Parse("2006-01-02 15:04:05", attendedAt.String)
+		}
+		checkins = append(checkins, c)
+	}
+	return checkins, nil
+}
+
+func (r *Repository) ResetAttendance(id int64) error {
+	_, err := r.db.Exec(`UPDATE guests SET is_attended = 0, attended_at = NULL WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("failed to reset attendance: %w", err)
+	}
+	return nil
+}
+
 func (r *Repository) InsertGuestbook(guestID int64, message string) error {
 	var existingID int64
 	err := r.db.QueryRow(`SELECT id FROM guestbooks WHERE guest_id = ? ORDER BY id DESC LIMIT 1`, guestID).Scan(&existingID)

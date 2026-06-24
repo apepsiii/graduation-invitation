@@ -39,7 +39,16 @@ type MealCheckin struct {
 	ID          int64     `json:"id"`
 	Name        string    `json:"name"`
 	PhoneNumber string    `json:"phone_number"`
+	Kelas       string    `json:"kelas"`
 	MealTakenAt time.Time `json:"meal_taken_at"`
+}
+
+type AttendanceCheckin struct {
+	ID          int64     `json:"id"`
+	Name        string    `json:"name"`
+	PhoneNumber string    `json:"phone_number"`
+	Kelas       string    `json:"kelas"`
+	AttendedAt  time.Time `json:"attended_at"`
 }
 
 type EventSettings struct {

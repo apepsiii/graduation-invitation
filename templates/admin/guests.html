@@ -239,7 +239,21 @@
                         alert('Error: ' + (result.error || 'Unknown error'));
                     }
                 })
-.catch(err => alert('Error: ' + err));
+                .catch(err => alert('Error: ' + err));
+        }
+
+        function deleteGuest(id) {
+            if (!confirm('Hapus tamu ini? Data tidak bisa dikembalikan.')) return;
+            fetch('/admin/api/guests/' + id, { method: 'DELETE' })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        document.getElementById('row-' + id).remove();
+                    } else {
+                        alert('Error: ' + (result.error || 'Unknown error'));
+                    }
+                })
+                .catch(err => alert('Error: ' + err));
         }
     </script>
     <script>

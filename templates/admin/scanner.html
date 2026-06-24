@@ -3,24 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Scanner</title>
+    <title>QR Scanner - Check-in</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root { --sage-600: #5c6352; --gray-50: #f9fafb; --gray-200: #e5e7eb; --gray-500: #6b7280; }
-        body { font-family: 'Inter', sans-serif; background: var(--gray-50); color: #111827; min-height: 100vh; }
+        :root { --sage-600: #5c6352; --sage-700: #4a5042; --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db; --gray-400: #9ca3af; --gray-500: #6b7280; --gray-600: #4b5563; --gray-800: #1f2937; --green-100: #dcfce7; --green-600: #16a34a; --yellow-100: #fef9c3; --yellow-700: #a16207; --red-100: #fee2e2; --red-500: #ef4444; --red-600: #dc2626; }
+        body { font-family: 'Inter', sans-serif; background: var(--gray-50); color: var(--gray-800); line-height: 1.5; }
         .navbar { background: white; border-bottom: 1px solid var(--gray-200); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
         .navbar-brand { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
         .navbar-links { display: flex; gap: 24px; align-items: center; }
         .navbar-links a { font-size: 13px; color: var(--gray-500); text-decoration: none; }
-        .navbar-links a:hover { color: var(--sage-600); }
-        .navbar-links a.active { color: var(--sage-600); font-weight: 600; }
+        .navbar-links a:hover, .navbar-links a.active { color: var(--sage-600); font-weight: 600; }
         .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; }
         .hamburger span { display: block; width: 22px; height: 2px; background: var(--gray-700); margin: 5px 0; transition: all 0.3s; }
         .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(6px, 6px); }
         .hamburger.active span:nth-child(2) { opacity: 0; }
         .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(6px, -6px); }
+        .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+        h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+        .subtitle { color: var(--gray-500); font-size: 13px; margin-bottom: 20px; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+        .stat { background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 16px; text-align: center; }
+        .stat-num { font-size: 28px; font-weight: 700; color: var(--sage-600); }
+        .stat-label { font-size: 12px; color: var(--gray-500); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
+        .card { background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 20px; }
+        .card-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+        .scanner-wrap { display: flex; flex-direction: column; align-items: center; }
+        #reader { width: 100%; max-width: 320px; border-radius: 16px; overflow: hidden; background: #1a1a2e; }
+        .status-line { font-size: 13px; color: var(--gray-500); margin: 12px 0; display: flex; align-items: center; gap: 8px; justify-content: center; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .status-dot.scanning { background: var(--sage-600); animation: blink 1s infinite; }
+        .status-dot.idle { background: var(--yellow-700); }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .result { margin-top: 16px; padding: 20px; border-radius: 12px; text-align: center; width: 100%; max-width: 320px; display: none; color: white; }
+        .result.show { display: block; }
+        .result.success { background: var(--green-600); }
+        .result.error { background: var(--red-600); }
+        .result.already { background: #d97706; }
+        .result-icon { font-size: 48px; margin-bottom: 8px; }
+        .result h2 { font-size: 18px; margin-bottom: 6px; }
+        .result .guest-name { font-size: 22px; font-weight: 700; margin: 8px 0 4px; word-wrap: break-word; }
+        .result .guest-class { font-size: 14px; opacity: 0.9; margin-bottom: 8px; }
+        .result .guest-meta { font-size: 12px; opacity: 0.8; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.2); }
+        .result p { font-size: 13px; opacity: 0.9; }
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; font-size: 13px; font-weight: 500; border-radius: 8px; text-decoration: none; cursor: pointer; border: none; transition: all 0.2s; font-family: inherit; }
+        .btn-light { background: white; color: var(--sage-600); }
+        .btn-outline { background: transparent; border: 1px solid var(--gray-300); color: var(--gray-600); }
+        .btn-outline:hover { border-color: var(--sage-600); color: var(--sage-600); }
+        .btn-sm { padding: 6px 10px; font-size: 12px; }
+        .row-between { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 500; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em; background: var(--gray-50); border-bottom: 1px solid var(--gray-100); white-space: nowrap; }
+        td { padding: 12px 14px; font-size: 13px; border-bottom: 1px solid var(--gray-100); }
+        .badge { display: inline-flex; padding: 4px 10px; border-radius: 100px; font-size: 11px; font-weight: 500; background: var(--green-100); color: var(--green-600); }
+        .empty { padding: 32px; text-align: center; color: var(--gray-400); font-size: 13px; }
+        .dl-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .note { font-size: 12px; color: var(--gray-500); }
+
         @media (max-width: 768px) {
             .hamburger { display: block; }
             .navbar-links { display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; flex-direction: column; padding: 16px 24px; gap: 0; border-bottom: 1px solid var(--gray-200); box-shadow: 0 4px 12px rgba(0,0,0,0.08); align-items: stretch; }
@@ -28,28 +71,10 @@
             .navbar-links a { padding: 12px 0; width: 100%; border-bottom: 1px solid var(--gray-100); }
             .navbar-links a:last-child { border-bottom: none; }
             .navbar { padding: 12px 16px; position: relative; }
-            .scanner-wrap { padding: 20px 16px; }
-            #reader { width: 100%; max-width: 300px; }
+            .container { padding: 16px; }
+            .stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .stat-num { font-size: 22px; }
         }
-        .scanner-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; min-height: calc(100vh - 60px); }
-        h1 { font-size: 24px; margin-bottom: 8px; color: #0f766e; }
-        .subtitle { color: var(--gray-500); margin-bottom: 24px; font-size: 14px; }
-        #reader { width: 300px; border-radius: 16px; overflow: hidden; background: #1a1a2e; }
-        .result { margin-top: 24px; padding: 24px; border-radius: 16px; text-align: center; min-width: 320px; max-width: 400px; display: none; color: white; }
-        .result.success { background: #5c6352; display: block; }
-        .result.error { background: #dc2626; display: block; }
-        .result.already { background: #f59e0b; display: block; }
-        .result h2 { font-size: 20px; margin-bottom: 8px; }
-        .result p { font-size: 14px; opacity: 0.9; }
-        .result .guest-name { font-size: 26px; font-weight: 700; margin: 12px 0 4px; word-wrap: break-word; }
-        .result .guest-class { font-size: 14px; opacity: 0.85; margin-bottom: 12px; }
-        .result .guest-meta { font-size: 12px; opacity: 0.75; margin-top: 8px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.2); }
-        .result-icon { font-size: 48px; margin-bottom: 8px; }
-        .btn { display: inline-block; padding: 10px 20px; background: white; color: #0f766e; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; margin-top: 16px; }
-        .status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; }
-        .status-dot.scanning { background: #5c6352; animation: blink 1s infinite; }
-        .status-dot.idle { background: #f59e0b; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
@@ -65,40 +90,98 @@
             <a href="/admin/rundowns">Rundown</a>
             <a href="/admin/galleries">Galeri</a>
             <a href="/admin/settings">Pengaturan</a>
-            <a href="/admin/scanner">Scanner</a>
+            <a href="/admin/scanner" class="active">Scanner</a>
             <a href="/admin/meal">Konsumsi</a>
             <a href="/admin/logout">Logout</a>
         </div>
     </nav>
-    <div class="scanner-wrap">
-        <h1>QR Scanner</h1>
-        <p class="subtitle"><span class="status-dot scanning" id="statusDot"></span><span id="statusText">Memulai kamera...</span></p>
-        <div id="reader"></div>
-        <div class="result" id="result">
-            <div class="result-icon" id="resultIcon">✓</div>
-            <h2 id="resultTitle">Result</h2>
-            <div class="guest-name" id="resultGuestName"></div>
-            <div class="guest-class" id="resultGuestClass"></div>
-            <p id="resultMessage">Message</p>
-            <div class="guest-meta" id="resultMeta" style="display:none;"></div>
-            <button class="btn" onclick="resetScanner()">Scan Lagi</button>
+    <div class="container">
+        <h1>Scan Check-in Tamu</h1>
+        <p class="subtitle">Scan QR tamu saat arrive di acara. Setiap tamu hanya boleh 1x check-in.</p>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-num" id="statTotal">{{.stats.TotalGuests}}</div>
+                <div class="stat-label">Total Tamu</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num" style="color: var(--green-600)" id="statAttended">{{.stats.TotalAttended}}</div>
+                <div class="stat-label">Sudah Check-in</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num" style="color: #d97706" id="statRemain">{{.stats.TotalGuests}}</div>
+                <div class="stat-label">Belum Check-in</div>
+            </div>
+        </div>
+
+        <div class="dl-row">
+            <a class="btn btn-outline" href="/admin/api/guests/qrcodes">⬇️ Download Semua QR (ZIP)</a>
+            <button class="btn btn-outline" onclick="refreshData()">↻ Refresh</button>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="card-title">Scanner</div>
+                <div class="scanner-wrap">
+                    <div id="reader"></div>
+                    <p class="status-line"><span class="status-dot scanning" id="statusDot"></span><span id="statusText">Memulai kamera...</span></p>
+                    <div class="result" id="result">
+                        <div class="result-icon" id="resultIcon">✓</div>
+                        <h2 id="resultTitle">Result</h2>
+                        <div class="guest-name" id="resultGuestName"></div>
+                        <div class="guest-class" id="resultGuestClass"></div>
+                        <p id="resultMessage">Message</p>
+                        <div class="guest-meta" id="resultMeta" style="display:none;"></div>
+                        <button class="btn btn-light" style="margin-top:14px;" onclick="resetScanner()">Scan Lagi</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="row-between">
+                    <div class="card-title" style="margin:0;">Riwayat Check-in</div>
+                    <span class="badge" id="checkinCount">{{len .checkins}} tamu</span>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Nama</th><th>Kelas</th><th>Waktu</th><th>Aksi</th></tr></thead>
+                        <tbody id="checkinBody">
+                            {{range .checkins}}
+                            <tr id="checkin-{{.ID}}">
+                                <td>{{.Name}}</td>
+                                <td>{{.Kelas}}</td>
+                                <td>{{.AttendedAt.Format "02/01 15:04"}}</td>
+                                <td><button class="btn btn-outline btn-sm" onclick="resetCheckin('{{.ID}}', '{{.Name}}')">Batal</button></td>
+                            </tr>
+                            {{else}}
+                            <tr><td colspan="4"><div class="empty">Belum ada yang check-in.</div></td></tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
+
     <script>
         let html5QrCode;
         let isScanning = false;
-function onScanSuccess(decodedText) {
+
+        function onScanSuccess(decodedText) {
             if (!isScanning) return;
             isScanning = false;
             html5QrCode.stop();
             document.getElementById('statusDot').className = 'status-dot idle';
             document.getElementById('statusText').textContent = 'Memproses...';
-            fetch('/admin/api/scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ qr_token: decodedText }), credentials: 'same-origin' })
+            fetch('/admin/api/scan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ qr_token: decodedText }),
+                credentials: 'same-origin'
+            })
             .then(res => res.json())
             .then(data => {
                 const resultDiv = document.getElementById('result');
-                resultDiv.className = 'result ' + (data.status === 'success' ? 'success' : data.status === 'already' ? 'already' : 'error');
-                
                 const icon = document.getElementById('resultIcon');
                 const title = document.getElementById('resultTitle');
                 const name = document.getElementById('resultGuestName');
@@ -106,25 +189,30 @@ function onScanSuccess(decodedText) {
                 const msg = document.getElementById('resultMessage');
                 const meta = document.getElementById('resultMeta');
                 
+                resultDiv.className = 'result show ' + (data.status === 'success' ? 'success' : data.status === 'already' ? 'already' : 'error');
+                
                 if (data.status === 'success') {
                     icon.textContent = '✓';
                     title.textContent = 'Berhasil Check-in!';
                     name.textContent = data.guest_name || '';
                     cls.textContent = data.guest_class || '';
-                    msg.textContent = 'Selamat datang di acara perpisahan!';
+                    msg.textContent = 'Selamat datang di acara!';
                     meta.style.display = 'none';
+                    playBeep(true);
+                    refreshData();
                 } else if (data.status === 'already') {
                     icon.textContent = '⚠';
                     title.textContent = 'Sudah Check-in';
                     name.textContent = data.guest_name || '';
                     cls.textContent = data.guest_class || '';
-                    msg.textContent = 'Tamu sudah melakukan check-in sebelumnya';
+                    msg.textContent = 'Tamu sudah check-in sebelumnya';
                     if (data.attended_at) {
                         meta.textContent = '🕐 Check-in pada: ' + data.attended_at;
                         meta.style.display = 'block';
                     } else {
                         meta.style.display = 'none';
                     }
+                    playBeep(false);
                 } else {
                     icon.textContent = '✗';
                     title.textContent = 'Gagal!';
@@ -133,13 +221,91 @@ function onScanSuccess(decodedText) {
                     msg.textContent = data.message || 'QR Code tidak valid';
                     meta.style.display = 'none';
                 }
-                
-                if (data.status === 'success') { try { new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQYAKI/R7byMRAAEL3bD8tycVQAAO3bD9NulXgAAQHHB9NqmXgAASE5v4eG4l18AADxywfTlqWAAAD5xwfTlqWEAAD9xwfTlqWEAAD9ywvTlqWEAAD9ywvTlqWEAAD5yw/TlqWEAAD5zw/TlqWEAAD10wvTlqWEAAD10w/TlqWEAADx1w/TlqWEAADx2w/TlqWEAAD13w/TlqWEAAD13w/TlqWEAAD14w/TlqWEAAD14w/TlqWEAAD14wvTlqWEAAD14wvTlqWEAAD14wvTlqWEAAD14wvTlqWEAAD14wvTlqWEAAD14wvTlqWEAAD14wvTlqWEAAD53w/TlqWEAAD93w/TlqWEAAD94w/TlqWEAAD94w/TlqWEAAD94w/TlqWEAAD94w/TlqWEAAD94w/TlqWEAAD94w/TlqWEAAD95w/TlqWEAAD95w/TlqWEAAD95w/TlqWEAAD95w/TlqWEAAD95w/TlqWEAAD95w/TlqWEAAD95w/TlqWEAAD96Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD97Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD98Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD99Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD9+Q/TlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEAAD+AQTlqWEA').play(); } catch(e) {} }
             })
             .catch(err => { alert('Error: ' + err); isScanning = true; });
         }
-        function resetScanner() { document.getElementById('result').style.display = 'none'; startScanner(); }
-        function startScanner() { html5QrCode = new Html5Qrcode("reader"); html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess, ()=>{}).then(() => { isScanning = true; document.getElementById('statusDot').className = 'status-dot scanning'; document.getElementById('statusText').textContent = 'Scanning...'; }).catch(err => { document.getElementById('statusText').textContent = 'Kamera tidak tersedia'; }); }
+
+        function resetScanner() {
+            document.getElementById('result').className = 'result';
+            startScanner();
+        }
+
+        function startScanner() {
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess, ()=>{})
+            .then(() => {
+                isScanning = true;
+                document.getElementById('statusDot').className = 'status-dot scanning';
+                document.getElementById('statusText').textContent = 'Scanning...';
+            })
+            .catch(err => {
+                document.getElementById('statusText').textContent = 'Kamera tidak tersedia';
+            });
+        }
+
+        function playBeep(success) {
+            try {
+                const base64 = success
+                    ? 'UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQYAKI/R7byMRAAEL3bD8tycVQAAO3bD9NulXgAAQHHB9NqmXgAASE5v4eG4l18AADxywfTlqWAAAD5xwfTlqWEAAD9xwfTlqWEAAD9ywvTlqWEAAD9ywvTlqWEAAD5yw/TlqWEAAD5zw/TlqWEAAD10wvTlqWEAAD10w/TlqWEAADx1w/TlqWEAADx2w/TlqWEAAD13w/TlqWEAAD13w/TlqWEAAD14w/TlqWEAAD14w/TlqWEA'
+                    : 'UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQYAKI/R7byMRAAEL3bD8tycVQAAO3bD9NulXgAAQHHB9NqmXgAASE5v4eG4l18AADxywfTlqWAAAD5xwfTlqWEAAD9xwfTlqWEAAD9ywvTlqWEAAD9ywvTlqWEAAD5yw/TlqWEAAD5zw/TlqWEA';
+                new Audio('data:audio/wav;base64,' + base64).play();
+            } catch(e) {}
+        }
+
+        function refreshData() {
+            fetch('/admin/api/attendance/checkins', { credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(data => {
+                const tbody = document.getElementById('checkinBody');
+                const count = document.getElementById('checkinCount');
+                count.textContent = data.checkins.length + ' tamu';
+                
+                if (data.checkins.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4"><div class="empty">Belum ada yang check-in.</div></td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = data.checkins.map(c => 
+                    '<tr id="checkin-' + c.id + '">' +
+                    '<td>' + escapeHtml(c.name) + '</td>' +
+                    '<td>' + escapeHtml(c.kelas || '') + '</td>' +
+                    '<td>' + formatTime(c.attended_at) + '</td>' +
+                    '<td><button class="btn btn-outline btn-sm" onclick="resetCheckin(' + c.id + ',\'' + escapeAttr(c.name) + '\')">Batal</button></td>' +
+                    '</tr>'
+                ).join('');
+                
+                const total = parseInt(document.getElementById('statTotal').textContent);
+                const attended = data.checkins.length;
+                document.getElementById('statAttended').textContent = attended;
+                document.getElementById('statRemain').textContent = total - attended;
+            })
+            .catch(err => console.error(err));
+        }
+
+        function resetCheckin(id, name) {
+            if (!confirm('Batalkan check-in untuk ' + name + '?')) return;
+            fetch('/admin/api/attendance/' + id, { method: 'DELETE', credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(res => {
+                if (res.status === 'success') {
+                    refreshData();
+                } else {
+                    alert('Error: ' + (res.error || 'gagal'));
+                }
+            })
+            .catch(err => alert('Error: ' + err));
+        }
+
+        function escapeHtml(s) { return (s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+        function escapeAttr(s) { return escapeHtml(s).replace(/'/g, '&#39;'); }
+        function formatTime(s) {
+            if (!s) return '';
+            const d = new Date(s);
+            if (isNaN(d.getTime())) return s;
+            const p = n => (n < 10 ? '0' : '') + n;
+            return p(d.getDate()) + '/' + p(d.getMonth() + 1) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+        }
+
         startScanner();
     </script>
     <script>

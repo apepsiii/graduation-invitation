@@ -96,6 +96,8 @@ func SetupRouter(h *handlers.Handler, session *middleware.SessionManager) *gin.E
 
 		protected.POST("/api/scan", h.PostScan)
 		protected.GET("/api/stats", h.GetStatsAPI)
+		protected.GET("/api/attendance/checkins", h.GetAttendanceCheckinsAPI)
+		protected.DELETE("/api/attendance/:id", h.ResetAttendance)
 
 		protected.POST("/api/meal/scan", h.PostMealScan)
 		protected.GET("/api/meal/stats", h.GetMealStatsAPI)
